@@ -30,11 +30,21 @@ class XpGainResult {
     required this.xpGanho,
     required this.nivelAnterior,
     required this.novoNivel,
+    required this.rankAnterior,
+    required this.novoRank,
   });
 
   final int xpGanho;
   final int nivelAnterior;
   final int novoNivel;
 
+  /// Rank real (mesma função `rankParaNivel` já usada por
+  /// [DriftProfileRepository.addXp] para persistir `user.rank`) — não é
+  /// recalculado pela UI, só exposto aqui pra o Level Up poder mostrá-lo
+  /// quando realmente mudar (Fase 10).
+  final String rankAnterior;
+  final String novoRank;
+
   bool get subiuDeNivel => novoNivel > nivelAnterior;
+  bool get subiuDeRank => novoRank != rankAnterior;
 }

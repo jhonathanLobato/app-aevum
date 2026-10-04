@@ -1,9 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../design_system/system_colors.dart';
+import '../../../design_system/system_empty_state.dart';
+import '../../../design_system/system_entrance.dart';
+import '../../../design_system/system_motion.dart';
+import '../../../design_system/system_panel.dart';
+import '../../../design_system/system_scaffold.dart';
+import '../../../design_system/system_spacing.dart';
+import '../../../design_system/system_stat_box.dart';
+import '../../../design_system/system_text_styles.dart';
 import '../domain/statistics.dart';
 import 'statistics_providers.dart';
+import 'widgets/player_attributes_panel.dart';
+import 'widgets/status_identity_panel.dart';
 
+/// Tela STATUS ("ficha de evolução"), redesenhada na Fase 8 a partir de
+/// `status.tsx`: identidade real (nome/classe/rank/nível/XP), os 3
+/// atributos derivados do MVP e as estatísticas globais já existentes.
+/// Não é mais um apontamento provisório pra uma tela de estatísticas
+/// genérica — esta é a aba STATUS de verdade (Fase 4 já apontava `/statistics`
+/// pra este arquivo; só o conteúdo mudou).
 class StatisticsScreen extends ConsumerWidget {
   const StatisticsScreen({super.key});
 
@@ -12,32 +29,70 @@ class StatisticsScreen extends ConsumerWidget {
     final globalAsync = ref.watch(globalStatisticsProvider);
     final porExercicioAsync = ref.watch(exerciseStatisticsProvider);
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('Estatísticas')),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
+    return SystemScaffold(
+      title: 'STATUS',
+      subtitle: 'FICHA DO CAÇADOR',
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          globalAsync.when(
-            data: (stats) => _GlobalStatsCard(stats: stats),
-            error: (error, stackTrace) => Text('Erro: $error'),
-            loading: () => const Center(child: CircularProgressIndicator()),
+          const SystemEntrance(child: StatusIdentityPanel()),
+          const SizedBox(height: SystemSpacing.lg),
+          SystemEntrance(
+            delay: SystemDurations.staggerStep,
+            child: globalAsync.when(
+              data: (stats) => _GlobalStatsGrid(stats: stats),
+              loading: () => const Center(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(vertical: SystemSpacing.lg),
+                  child:
+                      CircularProgressIndicator(color: SystemPalette.primary),
+                ),
+              ),
+              error: (error, stackTrace) => const SystemEmptyState(
+                icon: Icons.error_outline,
+                message: 'ERRO AO CARREGAR ESTATÍSTICAS',
+              ),
+            ),
           ),
-          const SizedBox(height: 24),
-          Text('Por exercício', style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(height: 8),
-          porExercicioAsync.when(
-            data: (lista) {
-              if (lista.isEmpty) {
-                return const Text('Nenhum exercício registrado ainda.');
-              }
-              return Column(
-                children: [
-                  for (final stats in lista) _ExerciseStatsCard(stats: stats),
-                ],
-              );
-            },
-            error: (error, stackTrace) => Text('Erro: $error'),
-            loading: () => const Center(child: CircularProgressIndicator()),
+          const SizedBox(height: SystemSpacing.lg),
+          SystemEntrance(
+            delay: SystemDurations.staggerStep * 2,
+            child: const PlayerAttributesPanel(),
+          ),
+          const SizedBox(height: SystemSpacing.lg),
+          SystemEntrance(
+            delay: SystemDurations.staggerStep * 3,
+            child: SystemPanel(
+              title: 'DETALHES POR EXERCÍCIO',
+              child: porExercicioAsync.when(
+                data: (lista) {
+                  if (lista.isEmpty) {
+                    return const SystemEmptyState(
+                      message: 'NENHUM EXERCÍCIO REGISTRADO AINDA',
+                    );
+                  }
+                  return Column(
+                    children: [
+                      for (var i = 0; i < lista.length; i++) ...[
+                        if (i > 0) const SizedBox(height: SystemSpacing.md),
+                        _ExerciseStatsRow(stats: lista[i]),
+                      ],
+                    ],
+                  );
+                },
+                loading: () => const Center(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(vertical: SystemSpacing.md),
+                    child:
+                        CircularProgressIndicator(color: SystemPalette.primary),
+                  ),
+                ),
+                error: (error, stackTrace) => const SystemEmptyState(
+                  icon: Icons.error_outline,
+                  message: 'ERRO AO CARREGAR DETALHES',
+                ),
+              ),
+            ),
           ),
         ],
       ),
@@ -45,94 +100,98 @@ class StatisticsScreen extends ConsumerWidget {
   }
 }
 
-class _GlobalStatsCard extends StatelessWidget {
-  const _GlobalStatsCard({required this.stats});
+class _GlobalStatsGrid extends StatelessWidget {
+  const _GlobalStatsGrid({required this.stats});
 
   final GlobalStatistics stats;
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    return Column(
+      children: [
+        Row(
           children: [
-            _StatRow('Treinos realizados', '${stats.treinosRealizados}'),
-            _StatRow('Tempo total treinando',
-                _formatarDuracao(stats.tempoTotalTreinando)),
-            _StatRow('Exercícios realizados', '${stats.exerciciosRealizados}'),
-            _StatRow('PRs', '${stats.totalPRs}'),
-            _StatRow(
-                'Volume total', '${stats.volumeTotal.toStringAsFixed(0)}kg'),
-            _StatRow('XP acumulado', '${stats.xpAcumulado}'),
-            _StatRow('Nível atual', '${stats.nivelAtual}'),
-            _StatRow('Maior sequência', '${stats.maiorSequenciaDias} dias'),
+            Expanded(
+              child: SystemStatBox(
+                label: 'TREINOS',
+                value: '${stats.treinosRealizados}',
+                icon: Icons.fitness_center,
+              ),
+            ),
+            const SizedBox(width: SystemSpacing.sm),
+            Expanded(
+              child: SystemStatBox(
+                label: 'HORAS',
+                value: _formatarDuracao(stats.tempoTotalTreinando),
+                icon: Icons.schedule,
+              ),
+            ),
           ],
         ),
-      ),
+        const SizedBox(height: SystemSpacing.sm),
+        Row(
+          children: [
+            Expanded(
+              child: SystemStatBox(
+                label: 'PRs',
+                value: '${stats.totalPRs}',
+                icon: Icons.emoji_events_outlined,
+                iconColor: SystemPalette.gold,
+              ),
+            ),
+            const SizedBox(width: SystemSpacing.sm),
+            Expanded(
+              child: SystemStatBox(
+                label: 'VOLUME',
+                value: '${stats.volumeTotal.toStringAsFixed(0)} KG',
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 
   String _formatarDuracao(Duration d) {
     final horas = d.inHours;
     final minutos = d.inMinutes.remainder(60);
-    return horas > 0 ? '${horas}h ${minutos}min' : '${minutos}min';
+    return horas > 0 ? '${horas}h${minutos}min' : '${minutos}min';
   }
 }
 
-class _ExerciseStatsCard extends StatelessWidget {
-  const _ExerciseStatsCard({required this.stats});
+class _ExerciseStatsRow extends StatelessWidget {
+  const _ExerciseStatsRow({required this.stats});
 
   final ExerciseStatistics stats;
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(stats.exerciseNome,
-                style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: 8),
-            _StatRow('Maior carga', '${stats.maiorCarga}kg'),
-            _StatRow('Maior repetição', '${stats.maiorRepeticao}'),
-            _StatRow(
-                'Maior volume', '${stats.maiorVolume.toStringAsFixed(0)}kg'),
-            _StatRow('Treinos realizados', '${stats.treinosRealizados}'),
-            _StatRow(
-                'Primeiro registro', _formatarData(stats.primeiroRegistro)),
-            _StatRow('Último registro', _formatarData(stats.ultimoRegistro)),
-          ],
+    return Container(
+      padding: const EdgeInsets.symmetric(
+          horizontal: SystemSpacing.md, vertical: SystemSpacing.sm),
+      decoration: BoxDecoration(
+        color:
+            SystemPalette.surface2.withValues(alpha: SystemOpacities.surface2),
+        border: Border(
+          left: BorderSide(
+              color: SystemPalette.primary.withValues(alpha: 0.5), width: 2),
         ),
       ),
-    );
-  }
-
-  String _formatarData(DateTime data) {
-    return '${data.day.toString().padLeft(2, '0')}/'
-        '${data.month.toString().padLeft(2, '0')}/${data.year}';
-  }
-}
-
-class _StatRow extends StatelessWidget {
-  const _StatRow(this.label, this.valor);
-
-  final String label;
-  final String valor;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label),
-          Text(valor, style: const TextStyle(fontWeight: FontWeight.bold)),
+          Text(
+            stats.exerciseNome,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: SystemTextStyles.body.copyWith(fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            '${stats.maiorCarga.toStringAsFixed(1)} KG · ${stats.maiorRepeticao} reps · '
+            '${stats.treinosRealizados} treinos',
+            style: SystemTextStyles.bodySmall,
+          ),
         ],
       ),
     );

@@ -52,3 +52,16 @@ String rankParaNivel(int nivel) {
   if (nivel >= 10) return 'E';
   return 'F';
 }
+
+/// Ordem de evolução dos ranks (seção 10), do mais baixo ao mais alto.
+const _ordemDosRanks = ['F', 'E', 'D', 'C', 'B', 'A', 'S'];
+
+/// `true` se [atual] já alcançou (ou superou) o rank [minimo] — usado pelo
+/// "rank lock" de missões (Fase 7, seção 8). Um rank desconhecido (fora da
+/// lista) nunca bloqueia, pra não travar a UI por um dado inesperado.
+bool rankAtende(String atual, String minimo) {
+  final indiceAtual = _ordemDosRanks.indexOf(atual.toUpperCase());
+  final indiceMinimo = _ordemDosRanks.indexOf(minimo.toUpperCase());
+  if (indiceAtual == -1 || indiceMinimo == -1) return true;
+  return indiceAtual >= indiceMinimo;
+}

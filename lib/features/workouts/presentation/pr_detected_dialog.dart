@@ -1,49 +1,75 @@
 import 'package:flutter/material.dart';
 
+import '../../../design_system/system_colors.dart';
+import '../../../design_system/system_feedback_dialog.dart';
+import '../../../design_system/system_spacing.dart';
+import '../../../design_system/system_text_styles.dart';
 import '../../progression/domain/personal_record.dart';
 
+/// PR é evento importante (Fase 9, seção 13/16): feedback médio, com ícone,
+/// glow e o valor real de cada recorde batido. Quando [xpGanho] é informado
+/// (o total real já concedido por este mesmo registro de série — PR e/ou
+/// desafio de missão), mostra "+N XP" junto; nunca recalculado aqui, é
+/// exatamente o valor que `WorkoutSessionRepository.logSet` retornou.
 Future<void> showPrDetectedDialog(
   BuildContext context, {
   required String exerciseNome,
   required List<PersonalRecordBreak> prs,
+  int? xpGanho,
 }) {
   return showDialog(
     context: context,
-    builder: (context) => AlertDialog(
-      title: const Text('PR DETECTADO'),
-      content: Column(
+    builder: (context) => SystemFeedbackDialog(
+      icon: Icons.emoji_events,
+      title: 'Novo Recorde',
+      accentColor: SystemPalette.gold,
+      child: Column(
         mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(exerciseNome, style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(height: 12),
-          for (final pr in prs)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Novo recorde de ${_labelTipo(pr.tipo)}: '
-                    '${_formatarValor(pr.tipo, pr.valorNovo)}',
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  if (pr.valorAnterior != null)
-                    Text(
-                      'Recorde anterior: ${_formatarValor(pr.tipo, pr.valorAnterior!)}',
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
-                ],
+          Text(
+            exerciseNome.toUpperCase(),
+            textAlign: TextAlign.center,
+            style: SystemTextStyles.label.copyWith(fontSize: 11),
+          ),
+          const SizedBox(height: SystemSpacing.md),
+          for (final pr in prs) ...[
+            Text(
+              '${_labelTipo(pr.tipo)}: ${_formatarValor(pr.tipo, pr.valorNovo)}',
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontFamily: SystemFonts.display,
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: SystemPalette.foreground,
               ),
             ),
+            if (pr.valorAnterior != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 2),
+                child: Text(
+                  'Recorde anterior: ${_formatarValor(pr.tipo, pr.valorAnterior!)}',
+                  textAlign: TextAlign.center,
+                  style: SystemTextStyles.bodySmall,
+                ),
+              ),
+            if (pr != prs.last) const SizedBox(height: SystemSpacing.sm),
+          ],
+          if (xpGanho != null) ...[
+            const SizedBox(height: SystemSpacing.md),
+            Text(
+              '+$xpGanho XP',
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontFamily: SystemFonts.display,
+                fontSize: 14,
+                fontWeight: FontWeight.w900,
+                color: SystemPalette.gold,
+              ),
+            ),
+          ],
         ],
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('OK'),
-        ),
-      ],
     ),
   );
 }
@@ -51,21 +77,21 @@ Future<void> showPrDetectedDialog(
 String _labelTipo(PersonalRecordType tipo) {
   switch (tipo) {
     case PersonalRecordType.carga:
-      return 'carga';
+      return 'Carga';
     case PersonalRecordType.repeticoes:
-      return 'repetições';
+      return 'Repetições';
     case PersonalRecordType.volume:
-      return 'volume';
+      return 'Volume';
   }
 }
 
 String _formatarValor(PersonalRecordType tipo, double valor) {
   switch (tipo) {
     case PersonalRecordType.carga:
-      return '${valor.toStringAsFixed(1)}kg';
+      return '${valor.toStringAsFixed(1)} KG';
     case PersonalRecordType.repeticoes:
       return valor.toStringAsFixed(0);
     case PersonalRecordType.volume:
-      return '${valor.toStringAsFixed(0)}kg';
+      return '${valor.toStringAsFixed(0)} KG';
   }
 }

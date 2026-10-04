@@ -169,6 +169,13 @@ class DriftWorkoutSessionRepository implements WorkoutSessionRepository {
   @override
   Future<FinishResult?> finish(int sessionId, {required Duration duracao}) {
     return _db.transaction(() async {
+      // Sessão reaberta por [reopen] mantém a duração da 1ª finalização —
+      // isso indica que o XP/missões/conquistas dela já foram concedidos.
+      final atual = await (_db.select(_db.workoutSessions)
+            ..where((s) => s.id.equals(sessionId)))
+          .getSingleOrNull();
+      final jaConcedido = atual?.duracaoSegundos != null;
+
       // Só atualiza (e só concede XP) se a sessão ainda estava em andamento,
       // para uma chamada repetida não conceder XP de novo.
       final linhasAfetadas = await (_db.update(_db.workoutSessions)
@@ -182,7 +189,7 @@ class DriftWorkoutSessionRepository implements WorkoutSessionRepository {
         ),
       );
 
-      if (linhasAfetadas == 0) return null;
+      if (linhasAfetadas == 0 || jaConcedido) return null;
 
       final missoesConcluidas =
           await _missionRepository.registrarTreinoConcluido();
@@ -201,6 +208,18 @@ class DriftWorkoutSessionRepository implements WorkoutSessionRepository {
         conquistasDesbloqueadas: conquistasDesbloqueadas,
       );
     });
+  }
+
+  @override
+  Future<void> reopen(int sessionId) {
+    return (_db.update(_db.workoutSessions)
+          ..where((s) =>
+              s.id.equals(sessionId) &
+              s.status.equalsValue(WorkoutSessionStatus.concluido)))
+        .write(
+      const WorkoutSessionsCompanion(
+          status: Value(WorkoutSessionStatus.emAndamento)),
+    );
   }
 
   @override

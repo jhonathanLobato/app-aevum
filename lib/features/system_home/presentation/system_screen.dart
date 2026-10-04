@@ -1,92 +1,72 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../profile/domain/level_curve.dart';
-import '../../profile/domain/player_class.dart';
-import '../../profile/presentation/profile_providers.dart';
+import '../../../design_system/system_colors.dart';
+import '../../../design_system/system_entrance.dart';
+import '../../../design_system/system_motion.dart';
+import '../../../design_system/system_scaffold.dart';
+import '../../../design_system/system_spacing.dart';
+import 'widgets/home_identity_panel.dart';
+import 'widgets/home_mission_panel.dart';
+import 'widgets/home_next_workout_panel.dart';
+import 'widgets/home_recent_activity_panel.dart';
+import 'widgets/home_shortcuts_row.dart';
 
-class SystemScreen extends ConsumerWidget {
+/// Tela Sistema/Home, reconstruída na Fase 5 a partir de `index.tsx` do
+/// ZIP do Lovable (ver `SystemLayout.tsx`/`Panel.tsx`/`XpBar.tsx`/
+/// `RankBadge.tsx`/`SystemButton.tsx` como referências de componente).
+///
+/// Cada seção é um `ConsumerWidget` próprio que observa só o provider que
+/// precisa (perfil, missões, treinos, histórico) — assim trocar de XP não
+/// reconstrói o card de missão, por exemplo, e vice-versa.
+///
+/// Fase 9: os 5 painéis entram com um stagger discreto (`SystemEntrance` +
+/// [SystemDurations.staggerStep]) só na primeira montagem desta tela — como
+/// [SystemScreen] é `StatelessWidget` sem nenhum estado que force um rebuild
+/// do zero, trocar de aba e voltar (`IndexedStack` das 5 abas, Fase 4)
+/// reaproveita os mesmos elementos/estados e não repete a entrada.
+class SystemScreen extends StatelessWidget {
   const SystemScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final userAsync = ref.watch(currentUserProvider);
-
-    return Scaffold(
-      body: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text(
-              'SISTEMA ONLINE',
-              style: TextStyle(letterSpacing: 4, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 16),
-            userAsync.when(
-              data: (user) {
-                if (user == null) {
-                  return const Text('Nível 1 · Rank F · 0 XP');
-                }
-                final info = const LevelCurve().calcularNivel(user.xp);
-                return Column(
-                  children: [
-                    Text(
-                      '${user.nome} · ${nomeDaClasse(user.classe)}'
-                      '${user.titulo != null ? ' · ${user.titulo}' : ''}',
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                        'Nível ${user.nivel} · Rank ${user.rank} · ${user.xp} XP'),
-                    const SizedBox(height: 8),
-                    SizedBox(
-                      width: 200,
-                      child: LinearProgressIndicator(value: info.progresso),
-                    ),
-                  ],
-                );
-              },
-              error: (error, stackTrace) => const SizedBox.shrink(),
-              loading: () => const SizedBox.shrink(),
-            ),
-            const SizedBox(height: 24),
-            OutlinedButton(
-              onPressed: () => context.push('/exercises'),
-              child: const Text('Gerenciar exercícios'),
-            ),
-            const SizedBox(height: 12),
-            OutlinedButton(
-              onPressed: () => context.push('/workouts'),
-              child: const Text('Gerenciar treinos'),
-            ),
-            const SizedBox(height: 12),
-            OutlinedButton(
-              onPressed: () => context.push('/history'),
-              child: const Text('Ver histórico'),
-            ),
-            const SizedBox(height: 12),
-            OutlinedButton(
-              onPressed: () => context.push('/missions'),
-              child: const Text('Ver missões'),
-            ),
-            const SizedBox(height: 12),
-            OutlinedButton(
-              onPressed: () => context.push('/achievements'),
-              child: const Text('Ver conquistas'),
-            ),
-            const SizedBox(height: 12),
-            OutlinedButton(
-              onPressed: () => context.push('/statistics'),
-              child: const Text('Ver estatísticas'),
-            ),
-            const SizedBox(height: 12),
-            OutlinedButton(
-              onPressed: () => context.push('/profile'),
-              child: const Text('Editar perfil'),
-            ),
-          ],
+  Widget build(BuildContext context) {
+    return SystemScaffold(
+      title: 'SYSTEM',
+      subtitle: 'PAINEL DO JOGADOR',
+      actions: [
+        IconButton(
+          icon: const Icon(Icons.person_outline),
+          iconSize: 18,
+          color: SystemPalette.mutedForeground,
+          tooltip: 'Perfil',
+          onPressed: () => context.push('/profile'),
         ),
+      ],
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const SystemEntrance(child: HomeIdentityPanel()),
+          const SizedBox(height: SystemSpacing.lg),
+          const SystemEntrance(
+            delay: SystemDurations.staggerStep,
+            child: HomeMissionPanel(),
+          ),
+          const SizedBox(height: SystemSpacing.lg),
+          SystemEntrance(
+            delay: SystemDurations.staggerStep * 2,
+            child: const HomeNextWorkoutPanel(),
+          ),
+          const SizedBox(height: SystemSpacing.lg),
+          SystemEntrance(
+            delay: SystemDurations.staggerStep * 3,
+            child: const HomeRecentActivityPanel(),
+          ),
+          const SizedBox(height: SystemSpacing.lg),
+          SystemEntrance(
+            delay: SystemDurations.staggerStep * 4,
+            child: const HomeShortcutsRow(),
+          ),
+        ],
       ),
     );
   }

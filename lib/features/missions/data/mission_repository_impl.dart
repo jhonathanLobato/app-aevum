@@ -21,6 +21,21 @@ class DriftMissionRepository implements MissionRepository {
   }
 
   @override
+  Stream<List<Mission>> watchRecentHistory() {
+    final inicioSemana = _inicioDaSemana(DateTime.now());
+    final query = _db.select(_db.missions)
+      ..where((m) => m.status.equalsValue(MissionStatus.concluida))
+      ..orderBy([
+        (m) => OrderingTerm(expression: m.criadoEm, mode: OrderingMode.desc)
+      ]);
+
+    return query.watch().map((rows) => rows
+        .where((row) => !_inicioDaSemana(row.criadoEm).isBefore(inicioSemana))
+        .map(_toDomain)
+        .toList());
+  }
+
+  @override
   Future<void> ensureRecurringMissions() {
     return _db.transaction(() async {
       await _garantirMissaoDiaria();
@@ -37,7 +52,8 @@ class DriftMissionRepository implements MissionRepository {
       final concluidas = <Mission>[];
       for (final mission in [diaria, semanal]) {
         final atualizada = await _avancarMissao(mission);
-        if (atualizada.status == MissionStatus.concluida) {
+        if (atualizada != null &&
+            atualizada.status == MissionStatus.concluida) {
           concluidas.add(atualizada);
         }
       }
@@ -90,19 +106,33 @@ class DriftMissionRepository implements MissionRepository {
     });
   }
 
+  /// Garante a missão diária de hoje, buscando pela mais recente *de
+  /// qualquer status* (não só `ativa`).
+  ///
+  /// Bug corrigido na Fase 7: a versão anterior só olhava pra missões
+  /// `ativa`, então assim que a diária de hoje era concluída, a próxima
+  /// chamada (ex.: um segundo treino no mesmo dia) não encontrava nenhuma
+  /// `ativa` e criava OUTRA missão diária do zero — permitindo ganhar o
+  /// XP da diária várias vezes no mesmo dia (contraria a seção 8 do
+  /// CLAUDE.md: "o usuário não deve conseguir ganhar XP indefinidamente").
+  /// Agora, se já existe qualquer missão diária criada hoje (ativa ou já
+  /// concluída), ela é reaproveitada — só expira e cria uma nova quando a
+  /// mais recente é de um dia anterior.
   Future<db.Mission> _garantirMissaoDiaria() async {
     final hoje = _apenasData(DateTime.now());
-    final ativa = await (_db.select(_db.missions)
-          ..where((m) =>
-              m.tipo.equalsValue(MissionType.diaria) &
-              m.status.equalsValue(MissionStatus.ativa)))
+    final maisRecente = await (_db.select(_db.missions)
+          ..where((m) => m.tipo.equalsValue(MissionType.diaria))
+          ..orderBy([
+            (m) => OrderingTerm(expression: m.criadoEm, mode: OrderingMode.desc)
+          ])
+          ..limit(1))
         .getSingleOrNull();
 
-    if (ativa != null && _apenasData(ativa.criadoEm) == hoje) {
-      return ativa;
+    if (maisRecente != null && _apenasData(maisRecente.criadoEm) == hoje) {
+      return maisRecente;
     }
-    if (ativa != null) {
-      await _expirar(ativa.id);
+    if (maisRecente != null && maisRecente.status == MissionStatus.ativa) {
+      await _expirar(maisRecente.id);
     }
 
     final id = await _db.into(_db.missions).insert(
@@ -118,20 +148,23 @@ class DriftMissionRepository implements MissionRepository {
         .getSingle();
   }
 
+  /// Mesma correção de [_garantirMissaoDiaria], pro período semanal.
   Future<db.Mission> _garantirMissaoSemanal() async {
     final inicioSemana = _inicioDaSemana(DateTime.now());
-    final ativa = await (_db.select(_db.missions)
-          ..where((m) =>
-              m.tipo.equalsValue(MissionType.semanal) &
-              m.status.equalsValue(MissionStatus.ativa)))
+    final maisRecente = await (_db.select(_db.missions)
+          ..where((m) => m.tipo.equalsValue(MissionType.semanal))
+          ..orderBy([
+            (m) => OrderingTerm(expression: m.criadoEm, mode: OrderingMode.desc)
+          ])
+          ..limit(1))
         .getSingleOrNull();
 
-    if (ativa != null &&
-        !_inicioDaSemana(ativa.criadoEm).isBefore(inicioSemana)) {
-      return ativa;
+    if (maisRecente != null &&
+        !_inicioDaSemana(maisRecente.criadoEm).isBefore(inicioSemana)) {
+      return maisRecente;
     }
-    if (ativa != null) {
-      await _expirar(ativa.id);
+    if (maisRecente != null && maisRecente.status == MissionStatus.ativa) {
+      await _expirar(maisRecente.id);
     }
 
     const objetivo = MissionValues.treinosPorMissaoSemanal;
@@ -148,7 +181,16 @@ class DriftMissionRepository implements MissionRepository {
         .getSingle();
   }
 
-  Future<Mission> _avancarMissao(db.Mission mission) async {
+  Future<Mission?> _avancarMissao(db.Mission mission) async {
+    // Segunda camada de proteção: mesmo que algum chamador futuro passe
+    // uma missão já concluída pra cá, não soma progresso nem reporta de
+    // novo como "recém concluída" (evita XP duplicado). `null` sinaliza
+    // pro chamador que nada mudou nesta chamada (diferente de "concluída
+    // agora"), pra não contar a mesma conclusão duas vezes.
+    if (mission.status == MissionStatus.concluida) {
+      return null;
+    }
+
     final novoProgresso = mission.progresso + 1;
     final concluida = novoProgresso >= mission.objetivo;
 
@@ -190,6 +232,9 @@ class DriftMissionRepository implements MissionRepository {
       status: row.status,
       criadoEm: row.criadoEm,
       exerciseId: row.exerciseId,
+      // A tabela `Missions` ainda não tem coluna pra isso (Fase 7, seção 8)
+      // — quando a migration for feita, passa a ler `row.minimumRank` aqui.
+      minimumRank: null,
     );
   }
 }
@@ -207,6 +252,7 @@ extension on Mission {
       status: concluida ? MissionStatus.concluida : status,
       criadoEm: criadoEm,
       exerciseId: exerciseId,
+      minimumRank: minimumRank,
     );
   }
 }

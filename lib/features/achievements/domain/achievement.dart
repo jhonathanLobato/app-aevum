@@ -89,4 +89,28 @@ const kAchievementCatalog = [
     icone: 'bolt',
     requisito: 'PR após 7+ dias sem treinar',
   ),
+  // As 3 abaixo são novas na Fase 8 — ver relatório, seção 13, pra critério
+  // de escolha (categorias ainda não cobertas pelo catálogo: contagem de
+  // PRs, marco de volume e rank).
+  AchievementDefinition(
+    chave: 'quebra_de_recorde',
+    nome: 'Quebra de Recorde',
+    descricao: 'Bata 5 recordes pessoais.',
+    icone: 'emoji_events',
+    requisito: '5 recordes pessoais registrados',
+  ),
+  AchievementDefinition(
+    chave: 'primeiro_milhar',
+    nome: 'Primeiro Milhar',
+    descricao: 'Acumule 1.000 kg de volume total.',
+    icone: 'fitness_center',
+    requisito: '1.000 kg de volume acumulado',
+  ),
+  AchievementDefinition(
+    chave: 'rank_e',
+    nome: 'Rank E',
+    descricao: 'Alcance o Rank E no sistema.',
+    icone: 'military_tech',
+    requisito: 'Rank E ou superior',
+  ),
 ];

@@ -2,6 +2,7 @@ import 'package:drift/drift.dart';
 
 import '../../../database/app_database.dart' hide Achievement;
 import '../../../database/app_database.dart' as db;
+import '../../profile/domain/level_curve.dart';
 import '../../workouts/domain/workout_session.dart';
 import '../domain/achievement.dart';
 import '../domain/achievement_repository.dart';
@@ -17,6 +18,10 @@ class DriftAchievementRepository implements AchievementRepository {
     'constancia': 25,
     'veterano': 100,
   };
+
+  static const _metaQuebraDeRecordePRs = 5;
+  static const _metaPrimeiroMilharKg = 1000.0;
+  static const _ranksMinimosPorChave = {'rank_e': 'E'};
 
   @override
   Stream<List<Achievement>> watchAll() {
@@ -58,6 +63,15 @@ class DriftAchievementRepository implements AchievementRepository {
           if (desbloqueada != null) desbloqueadas.add(desbloqueada);
         }
       }
+
+      // Volume acumula em toda série registrada (não só quando há PR), então
+      // o fim do treino — chamado sempre — é o ponto certo pra conferir.
+      if (await _somarVolumeTotal() >= _metaPrimeiroMilharKg) {
+        final d = await _desbloquearSeNecessario('primeiro_milhar');
+        if (d != null) desbloqueadas.add(d);
+      }
+
+      desbloqueadas.addAll(await _verificarRanks());
       return desbloqueadas;
     });
   }
@@ -76,6 +90,15 @@ class DriftAchievementRepository implements AchievementRepository {
         if (superacao != null) desbloqueadas.add(superacao);
       }
 
+      if (await _contarPRs() >= _metaQuebraDeRecordePRs) {
+        final d = await _desbloquearSeNecessario('quebra_de_recorde');
+        if (d != null) desbloqueadas.add(d);
+      }
+
+      // XP de PR pode subir o rank no meio de uma sessão, antes do treino
+      // acabar — por isso também confere rank aqui, não só no fim do treino.
+      desbloqueadas.addAll(await _verificarRanks());
+
       return desbloqueadas;
     });
   }
@@ -88,6 +111,42 @@ class DriftAchievementRepository implements AchievementRepository {
               .equalsValue(WorkoutSessionStatus.concluido)))
         .map((row) => row.read(contagem)!)
         .getSingle();
+  }
+
+  Future<double> _somarVolumeTotal() async {
+    final soma = _db.setEntries.volume.sum();
+    final resultado = await (_db.selectOnly(_db.setEntries).join([
+      innerJoin(
+        _db.workoutSessions,
+        _db.workoutSessions.id.equalsExp(_db.setEntries.sessionId),
+      ),
+    ])
+          ..addColumns([soma])
+          ..where(_db.workoutSessions.status
+              .equalsValue(WorkoutSessionStatus.concluido)))
+        .getSingle();
+    return resultado.read(soma) ?? 0;
+  }
+
+  Future<int> _contarPRs() async {
+    final contagem = _db.personalRecords.id.count();
+    return (_db.selectOnly(_db.personalRecords)..addColumns([contagem]))
+        .map((row) => row.read(contagem)!)
+        .getSingle();
+  }
+
+  Future<List<Achievement>> _verificarRanks() async {
+    final usuario = await (_db.select(_db.users)..limit(1)).getSingleOrNull();
+    if (usuario == null) return [];
+
+    final desbloqueadas = <Achievement>[];
+    for (final entry in _ranksMinimosPorChave.entries) {
+      if (rankAtende(usuario.rank, entry.value)) {
+        final d = await _desbloquearSeNecessario(entry.key);
+        if (d != null) desbloqueadas.add(d);
+      }
+    }
+    return desbloqueadas;
   }
 
   Future<bool> _passaramSeteDiasSemTreinar() async {

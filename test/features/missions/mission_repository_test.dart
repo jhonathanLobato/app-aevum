@@ -79,6 +79,57 @@ void main() {
     expect(desafio.objetivo, 32);
   });
 
+  test(
+      'completar vários treinos no mesmo dia não concede o XP da diária mais de uma vez',
+      () async {
+    final primeira = await repo.registrarTreinoConcluido();
+    final segunda = await repo.registrarTreinoConcluido();
+    final terceira = await repo.registrarTreinoConcluido();
+
+    expect(primeira.where((m) => m.tipo == MissionType.diaria), hasLength(1));
+    expect(segunda.where((m) => m.tipo == MissionType.diaria), isEmpty);
+    expect(terceira.where((m) => m.tipo == MissionType.diaria), isEmpty);
+
+    final diarias = await (db.select(db.missions)
+          ..where((m) => m.tipo.equalsValue(MissionType.diaria)))
+        .get();
+    expect(diarias, hasLength(1));
+    expect(diarias.single.status, MissionStatus.concluida);
+  });
+
+  test(
+      'completar treinos além da meta semanal não concede o XP da semanal mais de uma vez',
+      () async {
+    for (var i = 0; i < 4; i++) {
+      await repo.registrarTreinoConcluido();
+    }
+    final concluidasNaQuarta =
+        (await repo.registrarTreinoConcluido()); // 5º treino da semana
+    // já tinha concluído a semanal no 4º treino; o 5º não deve reconcluir.
+
+    final semanais = await (db.select(db.missions)
+          ..where((m) => m.tipo.equalsValue(MissionType.semanal)))
+        .get();
+    expect(semanais, hasLength(1));
+    expect(semanais.single.status, MissionStatus.concluida);
+    expect(semanais.single.progresso, 4);
+    expect(concluidasNaQuarta.where((m) => m.tipo == MissionType.semanal),
+        isEmpty);
+  });
+
+  test('watchRecentHistory mostra missões concluídas, não as ainda ativas',
+      () async {
+    await repo.registrarTreinoConcluido();
+
+    final historico = await repo.watchRecentHistory().first;
+    expect(historico, hasLength(1));
+    expect(historico.single.tipo, MissionType.diaria);
+    expect(historico.single.status, MissionStatus.concluida);
+
+    final ativas = await repo.watchActive().first;
+    expect(ativas.any((m) => m.tipo == MissionType.diaria), isFalse);
+  });
+
   test('bater a meta do desafio conclui e cria o próximo', () async {
     await repo.registrarNovoRecordeDeCarga(
       exerciseId: exercicioId,

@@ -42,6 +42,7 @@ class DriftStatisticsRepository implements StatisticsRepository {
           ..addColumns([
             _db.setEntries.volume.sum(),
             _db.setEntries.exerciseId.count(distinct: true),
+            _db.setEntries.repeticoes.sum(),
           ])
           ..where(_db.workoutSessions.status
               .equalsValue(WorkoutSessionStatus.concluido)))
@@ -62,6 +63,7 @@ class DriftStatisticsRepository implements StatisticsRepository {
               0,
       totalPRs: totalPRs,
       volumeTotal: volumeESeries.read(_db.setEntries.volume.sum()) ?? 0,
+      totalRepeticoes: volumeESeries.read(_db.setEntries.repeticoes.sum()) ?? 0,
       xpAcumulado: usuario?.xp ?? 0,
       nivelAtual: usuario?.nivel ?? 1,
       maiorSequenciaDias: await _calcularMaiorSequencia(),

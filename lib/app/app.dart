@@ -14,7 +14,7 @@ class App extends ConsumerWidget {
     final tema = ref.watch(currentUserProvider).valueOrNull?.tema;
 
     return MaterialApp.router(
-      title: 'Sistema',
+      title: 'Aevum',
       debugShowCheckedModeBanner: false,
       theme: buildSystemTheme(escuro: tema != AppTheme.claro),
       routerConfig: appRouter,

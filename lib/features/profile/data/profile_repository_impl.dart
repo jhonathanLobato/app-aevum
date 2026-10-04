@@ -47,6 +47,8 @@ class DriftProfileRepository implements ProfileRepository {
         xpGanho: quantidade,
         nivelAnterior: infoAnterior.nivel,
         novoNivel: infoNova.nivel,
+        rankAnterior: rankParaNivel(infoAnterior.nivel),
+        novoRank: rankParaNivel(infoNova.nivel),
       );
     });
   }

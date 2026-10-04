@@ -55,4 +55,21 @@ void main() {
     expect(comSubida.nivelAnterior, 1);
     expect(comSubida.novoNivel, 2);
   });
+
+  test('reporta subida de rank apenas quando ela realmente acontece', () async {
+    const curve = LevelCurve();
+    final xpParaNivel10 =
+        List.generate(9, (i) => curve.xpParaProximoNivel(i + 1))
+            .reduce((a, b) => a + b);
+
+    final semSubidaDeRank = await repo.addXp(xpParaNivel10 - 10);
+    expect(semSubidaDeRank.subiuDeRank, isFalse);
+    expect(semSubidaDeRank.rankAnterior, 'F');
+    expect(semSubidaDeRank.novoRank, 'F');
+
+    final comSubidaDeRank = await repo.addXp(10);
+    expect(comSubidaDeRank.subiuDeRank, isTrue);
+    expect(comSubidaDeRank.rankAnterior, 'F');
+    expect(comSubidaDeRank.novoRank, 'E');
+  });
 }

@@ -63,14 +63,15 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Treino livre'), findsOneWidget);
-    expect(find.textContaining('1 séries'), findsOneWidget);
+    expect(find.text('TREINO LIVRE'), findsOneWidget);
+    expect(find.text('SÉRIES'), findsOneWidget);
+    expect(find.text('300 KG'), findsOneWidget);
 
-    await tester.tap(find.text('Treino livre'));
+    await tester.tap(find.text('TREINO LIVRE'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Série 1: 10 × 30.0kg'), findsOneWidget);
-    expect(find.text('Finalizar treino'), findsNothing);
+    expect(find.text('30.0 KG × 10'), findsOneWidget);
+    expect(find.text('FINALIZAR TREINO'), findsNothing);
 
     await tester.pumpWidget(const SizedBox());
     await tester.pump(const Duration(milliseconds: 50));

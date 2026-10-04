@@ -5,6 +5,7 @@ class GlobalStatistics {
     required this.exerciciosRealizados,
     required this.totalPRs,
     required this.volumeTotal,
+    required this.totalRepeticoes,
     required this.xpAcumulado,
     required this.nivelAtual,
     required this.maiorSequenciaDias,
@@ -15,6 +16,12 @@ class GlobalStatistics {
   final int exerciciosRealizados;
   final int totalPRs;
   final double volumeTotal;
+
+  /// Soma de todas as repetições já registradas (Fase 8 — usado por
+  /// [PlayerAttributesCalculator] pra Resistência). Mesma agregação SQL que
+  /// já calculava [volumeTotal], só mais uma coluna somada — sem query nova.
+  final int totalRepeticoes;
+
   final int xpAcumulado;
   final int nivelAtual;
 

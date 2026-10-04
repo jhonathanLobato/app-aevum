@@ -15,3 +15,9 @@ final activeMissionsProvider = StreamProvider<List<Mission>>((ref) {
   repo.ensureRecurringMissions();
   return repo.watchActive();
 });
+
+/// Missões concluídas recentemente (Fase 7) — pra tela de Missões mostrar
+/// o estado "CONCLUÍDA" antes delas saírem de [activeMissionsProvider].
+final missionRecentHistoryProvider = StreamProvider<List<Mission>>((ref) {
+  return ref.watch(missionRepositoryProvider).watchRecentHistory();
+});

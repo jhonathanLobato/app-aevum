@@ -3,6 +3,12 @@ import 'mission.dart';
 abstract class MissionRepository {
   Stream<List<Mission>> watchActive();
 
+  /// Missões concluídas nesta semana (inclui a diária/semanal mais
+  /// recentes se já tiverem sido concluídas) — pra tela de Missões poder
+  /// mostrar brevemente o estado "concluída" antes de saírem de
+  /// [watchActive], que só retorna o que ainda está ativo.
+  Stream<List<Mission>> watchRecentHistory();
+
   /// Garante que existe uma missão diária e uma semanal ativas para o
   /// período atual (hoje / esta semana), criando-as se necessário e
   /// expirando as de períodos anteriores que não foram concluídas.

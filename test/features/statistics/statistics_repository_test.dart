@@ -110,6 +110,7 @@ void main() {
     expect(stats.exerciciosRealizados, 2);
     expect(stats.totalPRs, 1);
     expect(stats.volumeTotal, 300 + 120 + 320);
+    expect(stats.totalRepeticoes, 10 + 12 + 10);
     expect(stats.xpAcumulado, 60);
     expect(stats.nivelAtual, 1);
   });
