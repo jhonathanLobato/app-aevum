@@ -11,13 +11,13 @@ import 'system_text_styles.dart';
 /// Variantes visuais de [SystemButton], direto de `SystemButton.tsx`.
 enum SystemButtonVariant { action, ghost, danger }
 
-/// Tamanhos de [SystemButton] (`md`/`lg` no Lovable).
+/// Tamanhos de [SystemButton] (`md`/`lg` no protótipo).
 enum SystemButtonSize { md, lg }
 
 /// Botão do sistema, direto de `SystemButton.tsx`.
 ///
 /// Mobile não tem estado de hover real, então o sweep de brilho que o
-/// Lovable anima em `hover:` não faz sentido aqui (seria um efeito sem
+/// protótipo anima em `hover:` não faz sentido aqui (seria um efeito sem
 /// gatilho real, o tipo de animação que a Fase 9 pede pra evitar). O
 /// feedback é só o toque: escala curta (`.press`, revisada na Fase 9 para
 /// ficar um pouco mais perceptível) e troca de borda/sombra conforme

@@ -1,7 +1,7 @@
 import 'statistics.dart';
 
-/// Atributos derivados do jogador (seção 15 do CLAUDE.md original; fórmula
-/// MVP definida na Fase 8) — escala 0-100, sempre recalculados a partir de
+/// Atributos derivados do jogador (seção 15 do CLAUDE.md) — escala 0-100,
+/// sempre recalculados a partir de
 /// [GlobalStatistics], nunca persistidos.
 class PlayerAttributes {
   const PlayerAttributes({
@@ -16,8 +16,7 @@ class PlayerAttributes {
 }
 
 /// Pesos e tetos da fórmula MVP, centralizados pra ajuste futuro sem mexer
-/// na fórmula em si. Ver [PlayerAttributesCalculator] pra como são usados,
-/// e o relatório da Fase 8 pra por que cada número foi escolhido.
+/// na fórmula em si. Ver [PlayerAttributesCalculator] pra como são usados.
 class PlayerAttributesValues {
   const PlayerAttributesValues._();
 
@@ -41,8 +40,7 @@ class PlayerAttributesValues {
 }
 
 /// Calcula os 3 atributos do MVP (Força/Resistência/Constância) — função
-/// pura e determinística, sem acesso a banco/IO. Ver relatório da Fase 8,
-/// seções 6-8, para a justificativa de cada termo.
+/// pura e determinística, sem acesso a banco/IO.
 ///
 /// Equações exatas (todas as constantes vêm de [PlayerAttributesValues];
 /// `min`/`max` abaixo operam sobre inteiros, com `volumeTotal / kg` truncado

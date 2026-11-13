@@ -4,7 +4,7 @@ import 'system_colors.dart';
 import 'system_geometry.dart';
 
 /// Reproduz o clip-path diagonal usado em `.panel`, `SystemButton`,
-/// `SystemInput` e `XpBar` no Lovable: corta o canto superior-esquerdo e o
+/// `SystemInput` e `XpBar` no protótipo: corta o canto superior-esquerdo e o
 /// canto inferior-direito em diagonal, mantendo os outros dois cantos retos.
 /// `cutSize` vem de [SystemCutSizes] (14 painel, 12 botão, 8 input, 6 xp
 /// bar/navegação) e é automaticamente limitado ao tamanho do widget, para

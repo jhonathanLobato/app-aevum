@@ -10,7 +10,7 @@ import 'system_text_styles.dart';
 /// `if (rank == 'S')`); qualquer mudança de paleta por rank se faz só aqui.
 ///
 /// O `RankBadge.tsx` original sempre usa violeta, independente do rank
-/// recebido (o mock do Lovable só exercita o rank "E"). Os 7 ranks do
+/// recebido (o mock do protótipo só exercita o rank "E"). Os 7 ranks do
 /// CLAUDE.md (F–S) foram mapeados 1:1 para violeta para preservar fidelidade
 /// total ao componente visto no ZIP. Se o sistema deve diferenciar ranks
 /// mais altos visualmente (ex.: S em dourado), é uma decisão de design que

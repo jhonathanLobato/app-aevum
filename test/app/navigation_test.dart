@@ -80,12 +80,12 @@ void main() {
 
       await tester.tap(find.text('STATUS'));
       await tester.pumpAndSettle();
-      // Status usa SystemScaffold desde a Fase 8 (sem AppBar).
+      // Status usa SystemScaffold (sem AppBar).
       expect(find.text('FICHA DO CAÇADOR'), findsOneWidget);
 
       await tester.tap(find.text('CONQUISTAS'));
       await tester.pumpAndSettle();
-      // Conquistas usa SystemScaffold desde a Fase 8 (sem AppBar).
+      // Conquistas usa SystemScaffold (sem AppBar).
       expect(find.text('TROFÉUS DO SISTEMA'), findsOneWidget);
 
       await tester.tap(find.text('SISTEMA'));
@@ -448,7 +448,7 @@ void main() {
 
       await tester.tap(find.text('CONQUISTAS'));
       await tester.pumpAndSettle();
-      // Conquistas usa SystemScaffold desde a Fase 8 (sem AppBar).
+      // Conquistas usa SystemScaffold (sem AppBar).
       expect(find.text('TROFÉUS DO SISTEMA'), findsOneWidget);
 
       tester.view.resetPadding();

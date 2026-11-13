@@ -10,7 +10,7 @@ import '../../../../design_system/system_text_field.dart';
 /// atual, direto de `treinos.tsx`.
 ///
 /// É um `StatefulWidget` próprio, isolado do resto da tela: a validação
-/// ao vivo (borda verde/vermelha enquanto digita, como no Lovable) só
+/// ao vivo (borda verde/vermelha enquanto digita, como no protótipo) só
 /// precisa reconstruir estes dois campos, não a sessão inteira — evita
 /// recalcular/repintar o cabeçalho, a lista de séries e o timer a cada
 /// caractere digitado (Fase 6, seção 14).

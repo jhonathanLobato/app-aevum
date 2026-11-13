@@ -131,8 +131,27 @@ O usuário deve conseguir:
 * adicionar exercícios;
 * remover exercícios;
 * iniciar treino;
+* finalizar exercício;
 * finalizar treino;
 * consultar histórico.
+
+## 4.1 Finalizar exercício x finalizar treino
+
+São duas ações diferentes, com efeitos diferentes:
+
+* **Finalizar exercício** é reversível e só organiza o treino em andamento.
+  No treino ativo, esconde todo o conteúdo do quadro "Nova série" (campos de
+  carga e repetições e o botão de registrar) e mostra apenas o botão
+  "Retornar ao exercício". Ao tocar nele, os campos voltam e é possível
+  registrar novas séries. O estado de exercício finalizado é salvo no banco e
+  sobrevive ao fechamento do aplicativo. Não gera XP nem altera PRs.
+* **Finalizar treino** pede confirmação e, depois de confirmado, encerra o
+  treino **definitivamente**: concede o XP de conclusão, avança as missões e
+  verifica as conquistas. **Não existe "reabrir" ou "retornar treino"** —
+  um treino concluído é somente leitura (aparece no histórico).
+
+A carga e as repetições digitadas e ainda não registradas são salvas no banco
+e restauradas ao reabrir o treino.
 
 ---
 
@@ -248,6 +267,24 @@ O conceito de PR deve permanecer separado do XP.
 
 > XP é uma recompensa de gamificação.
 > PR representa progresso registrado no exercício.
+
+## 7.1 Regras de detecção de PR
+
+* **O primeiro registro de um exercício não é recorde.** A primeira vez que
+  um exercício recebe uma série (em qualquer treino) apenas estabelece a
+  referência: não gera PR, não dá XP, não mostra o diálogo de PR e não cria
+  missão de desafio. Isso vale para todas as séries desse primeiro treino.
+* **A comparação é com o melhor resultado ANTERIOR ao treino atual**, isto é,
+  com as séries de treinos já concluídos. Séries do próprio treino em
+  andamento não servem de referência.
+* **Cada tipo de PR (carga, repetições, volume) conta no máximo uma vez por
+  exercício por treino.** Se, no mesmo treino, uma série seguinte superar de
+  novo o mesmo tipo, o valor do recorde é atualizado, mas não há novo PR, XP
+  ou diálogo.
+* As conquistas que dependem de PR ("Evolução", "Quebra de Recorde",
+  "Superação") só contam PRs gerados por essas regras.
+* "PR ATUAL" exibido no treino é a maior carga já registrada no exercício
+  (inclui a referência do primeiro treino).
 
 ---
 

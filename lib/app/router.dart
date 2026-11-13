@@ -34,23 +34,14 @@ String? _redirecionarSeModalidadeInvalida(
 SportType _tipoDaRota(GoRouterState state) =>
     SportType.fromName(state.pathParameters['type'])!;
 
-/// As 5 áreas principais (Sistema/Treinos/Missões/Status/Conquistas) vivem
-/// dentro do [StatefulShellRoute], cada uma em seu próprio branch — isso
-/// preserva a pilha de navegação e o estado de cada aba ao alternar entre
-/// elas (ex.: scroll, formulários abertos), sem precisar de nenhum estado
-/// próprio: o índice da aba atual é inteiramente responsabilidade do
-/// go_router (`navigationShell.currentIndex`).
+/// As 6 áreas principais (Sistema/Treinos/Atividades/Missões/Status/
+/// Conquistas) vivem dentro do [StatefulShellRoute], cada uma em seu próprio
+/// branch — isso preserva a pilha de navegação e o estado de cada aba ao
+/// alternar entre elas (ex.: scroll, formulários abertos), sem precisar de
+/// nenhum estado próprio: o índice da aba atual é inteiramente
+/// responsabilidade do go_router (`navigationShell.currentIndex`).
 ///
-/// "STATUS" é a aba nova desta fase. O Lovable descreve essa tela como
-/// nível/rank/XP/atributos/estatísticas resumidas, mas nada disso existe
-/// ainda no Flutter como uma tela própria. Entre as telas já existentes, a
-/// mais próxima é [StatisticsScreen] (treinos, volume, PRs) — é puramente
-/// "números de progresso", igual ao Lovable, enquanto [ProfileScreen] é um
-/// formulário de edição (nome/classe/tema), que já estava listado como tela
-/// secundária. Essa ligação é provisória: o redesign real de Status fica
-/// pra Fase 8.
-///
-/// Toda tela que não é uma das 5 abas (detalhe de exercício, histórico,
+/// Toda tela que não é uma das 6 abas (detalhe de exercício, histórico,
 /// perfil, detalhe de treino, sessão ativa) continua como rota de nível
 /// raiz — com `parentNavigatorKey: rootNavigatorKey` para empilhar por cima
 /// do shell inteiro (escondendo a navigation bar) em vez de tentar se

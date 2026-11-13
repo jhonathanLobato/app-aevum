@@ -4,9 +4,8 @@ import 'package:go_router/go_router.dart';
 import '../../../../design_system/system_button.dart';
 import '../../../../design_system/system_colors.dart';
 
-/// Atalhos discretos pras telas secundárias que não têm mais botão próprio
-/// na Home desde que a navigation bar (Fase 4) passou a cobrir as 5 áreas
-/// principais. Só Exercícios e Histórico ficam aqui — Perfil tem seu
+/// Atalho discreto pra tela secundária que não tem aba própria. Só o
+/// Histórico fica aqui — Exercícios fica na aba Treinos e o Perfil tem seu
 /// próprio ícone no cabeçalho ([SystemScreen]). Variante `ghost`
 /// (discreta) de propósito, pra não competir visualmente com o CTA
 /// principal da missão.

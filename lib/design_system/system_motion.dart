@@ -17,7 +17,7 @@ class SystemDurations {
   /// `float-up`: partículas subindo no level up.
   static const floatUp = Duration(milliseconds: 1200);
 
-  /// `xp-shine`: brilho varrendo a barra de XP. No Lovable é um loop
+  /// `xp-shine`: brilho varrendo a barra de XP. No protótipo é um loop
   /// contínuo; na Fase 9 vira uma varredura única disparada só quando o XP
   /// realmente aumenta (ver [SystemXpBar]) — reaproveita a mesma duração do
   /// CSS original pra manter a sensação de velocidade do efeito, sem

@@ -15,7 +15,7 @@ class SystemFonts {
   static const body = 'Rajdhani';
 }
 
-/// Hierarquia tipográfica portada dos componentes do Lovable. Cobre os
+/// Hierarquia tipográfica portada dos componentes do protótipo. Cobre os
 /// papéis que se repetem; variações pontuais de tamanho por tela ficam a
 /// cargo do componente (Fase 2+), usando `.copyWith(...)` sobre estes
 /// estilos base.

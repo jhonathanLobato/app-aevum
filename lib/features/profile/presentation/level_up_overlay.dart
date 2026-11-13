@@ -12,7 +12,7 @@ import '../../../design_system/system_text_styles.dart';
 
 /// Apresentação de LEVEL UP (Fase 10) — o feedback mais importante do
 /// Aevum, deliberadamente acima de PR/missão/conquista (Fase 9) em
-/// intensidade visual. Baseado em `LevelUpOverlay.tsx` do Lovable, adaptado
+/// intensidade visual. Baseado em `LevelUpOverlay.tsx` do protótipo, adaptado
 /// pra mobile: tela cheia, fundo escurecido, anéis expandindo e partículas
 /// leves num único `CustomPainter` (não um `AnimationController` por
 /// elemento), sem `BackdropFilter`.

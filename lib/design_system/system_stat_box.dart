@@ -5,7 +5,7 @@ import 'system_spacing.dart';
 import 'system_text_styles.dart';
 
 /// Caixinha de estatística rotulada — borda fina + fundo `surface-2`, sem
-/// corte diagonal (o Lovable usa essa mesma caixa simples em várias telas
+/// corte diagonal (o protótipo usa essa mesma caixa simples em várias telas
 /// pra números curtos: sequência, treinos, PR, meta). `value` aceita texto
 /// livre (ex.: "65 KG", "3×10", "—" quando o dado ainda não existe).
 class SystemStatBox extends StatelessWidget {

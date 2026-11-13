@@ -4,8 +4,7 @@ import '../../statistics/domain/statistics.dart';
 /// na apresentação a partir de [GlobalStatistics] — nenhuma coluna nova no
 /// banco, nenhuma mudança de domínio. `null` para conquistas binárias
 /// (ex. "evolucao"/"superacao"/"rank_e": já tem ou não tem, uma fração não
-/// faria sentido — seção 23 da Fase 8: "para conquistas binárias, não
-/// inventar percentual artificial").
+/// faria sentido: para conquistas binárias não se inventa um percentual).
 ///
 /// As chaves aqui têm que bater com `kAchievementCatalog` e com os
 /// critérios reais de `DriftAchievementRepository` — se um dia divergirem,

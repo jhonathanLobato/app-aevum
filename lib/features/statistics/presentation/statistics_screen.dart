@@ -15,12 +15,9 @@ import 'statistics_providers.dart';
 import 'widgets/player_attributes_panel.dart';
 import 'widgets/status_identity_panel.dart';
 
-/// Tela STATUS ("ficha de evolução"), redesenhada na Fase 8 a partir de
-/// `status.tsx`: identidade real (nome/classe/rank/nível/XP), os 3
-/// atributos derivados do MVP e as estatísticas globais já existentes.
-/// Não é mais um apontamento provisório pra uma tela de estatísticas
-/// genérica — esta é a aba STATUS de verdade (Fase 4 já apontava `/statistics`
-/// pra este arquivo; só o conteúdo mudou).
+/// Tela STATUS ("ficha de evolução"): identidade real (nome/classe/rank/
+/// nível/XP), os 3 atributos derivados do MVP, as estatísticas globais e o
+/// detalhe por exercício. É a aba STATUS (rota `/statistics`).
 class StatisticsScreen extends ConsumerWidget {
   const StatisticsScreen({super.key});
 

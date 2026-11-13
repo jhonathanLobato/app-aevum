@@ -16,7 +16,7 @@ import '../../../profile/presentation/profile_providers.dart';
 /// Painel de identidade do topo de Status, direto de `status.tsx`: rank,
 /// nome, classe, nível e XP real — mesmos dados de [HomeIdentityPanel]
 /// (Fase 5), mas sem o rótulo "SYSTEM ONLINE" nem a linha de
-/// sequência/treinos (o Lovable não tem isso aqui, e Status já tem seu
+/// sequência/treinos (o protótipo não tem isso aqui, e Status já tem seu
 /// próprio grid de estatísticas logo abaixo). Widget próprio, não
 /// compartilhado com a Home, pra não arriscar mexer numa tela já aprovada
 /// só por causa de uma pequena diferença de conteúdo.

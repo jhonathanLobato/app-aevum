@@ -89,9 +89,8 @@ const kAchievementCatalog = [
     icone: 'bolt',
     requisito: 'PR após 7+ dias sem treinar',
   ),
-  // As 3 abaixo são novas na Fase 8 — ver relatório, seção 13, pra critério
-  // de escolha (categorias ainda não cobertas pelo catálogo: contagem de
-  // PRs, marco de volume e rank).
+  // Contagem de PRs, marco de volume e rank (categorias além de treinos
+  // concluídos e do primeiro PR).
   AchievementDefinition(
     chave: 'quebra_de_recorde',
     nome: 'Quebra de Recorde',

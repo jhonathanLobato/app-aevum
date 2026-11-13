@@ -16,10 +16,8 @@ import 'achievement_progress.dart';
 import 'achievement_providers.dart';
 import 'widgets/achievement_card.dart';
 
-/// Tela de Conquistas ("galeria de troféus"), redesenhada na Fase 8 a
-/// partir de `conquistas.tsx`: resumo de progresso + grade 2 colunas de
-/// [AchievementCard]. Ver relatório da Fase 8 pra análise completa do
-/// sistema de conquistas que já existia antes desta fase.
+/// Tela de Conquistas ("galeria de troféus"): resumo de progresso + grade
+/// de 2 colunas de [AchievementCard].
 class AchievementsScreen extends ConsumerWidget {
   const AchievementsScreen({super.key});
 

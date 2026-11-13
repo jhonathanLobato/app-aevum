@@ -18,8 +18,8 @@ import '../../../missions/presentation/mission_providers.dart';
 /// aqui: prioriza uma missão diária (a mais comum de estar em andamento);
 /// se não houver nenhuma diária ativa, usa a primeira da lista.
 ///
-/// O CTA "Iniciar treino" do Lovable é mantido mesmo sem ligação direta
-/// com a missão em si (no próprio Lovable ele já era só um atalho fixo
+/// O CTA "Iniciar treino" do protótipo é mantido mesmo sem ligação direta
+/// com a missão em si (no próprio protótipo ele já era só um atalho fixo
 /// pra tela de treinos) — vai para a aba Treinos.
 class HomeMissionPanel extends ConsumerWidget {
   const HomeMissionPanel({super.key});

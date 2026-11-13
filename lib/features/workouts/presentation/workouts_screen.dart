@@ -16,7 +16,7 @@ import 'widgets/active_workout_card.dart';
 import 'workout_template_providers.dart';
 
 /// Lista de treinos ("Protocolos de Treinamento"), redesenhada na Fase 11 a
-/// partir da tela Material simples original — o Lovable não tem uma
+/// partir da tela Material simples original — o protótipo não tem uma
 /// referência pronta pra esta tela, então a estética reaproveita só os
 /// componentes/tokens já consolidados no resto do Aevum (nenhum design
 /// novo foi inventado).

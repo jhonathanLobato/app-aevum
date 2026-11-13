@@ -654,7 +654,7 @@ void main() {
       await _finish(tester, db);
     });
 
-    testWidgets('a navigation bar das 5 abas não aparece na sessão ativa',
+    testWidgets('a navigation bar das 6 abas não aparece na sessão ativa',
         (tester) async {
       final db = _memoryDb();
       final exId = await _criarExercicio(db, 'Supino reto');

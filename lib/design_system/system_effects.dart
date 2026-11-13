@@ -107,7 +107,7 @@ class SystemShadows {
   ];
 
   /// Glow colorido genérico usado em badges/estados especiais (rank violeta,
-  /// conquista dourada, input de sucesso/erro): no Lovable sempre no formato
+  /// conquista dourada, input de sucesso/erro): no protótipo sempre no formato
   /// `0 0 <blur>px -8px <cor>`. Parametrizado em vez de repetir uma
   /// constante por cor.
   static List<BoxShadow> coloredGlow(

@@ -15,7 +15,7 @@ import 'system_text_styles.dart';
 /// ver [SystemOnlineIndicator] pra como isso fica isolado do resto do
 /// cabeçalho e pausa sozinho quando a aba não está em foco.
 ///
-/// Diferença deliberada do Lovable: lá o header é `position: sticky` com
+/// Diferença deliberada do protótipo: lá o header é `position: sticky` com
 /// `backdrop-blur-xl` por cima do conteúdo que rola por baixo dele. Aqui
 /// ele fica num slot fixo, acima da área rolável, não sobreposto a ela —
 /// uma blur "sticky" de verdade precisaria recalcular o blur a cada frame
@@ -36,7 +36,7 @@ class SystemHeader extends StatelessWidget {
 
   /// Widget opcional antes do título (ex.: botão de voltar numa tela
   /// secundária em tela cheia, como o treino ativo). `null` por padrão —
-  /// as telas das 5 abas principais não precisam de um.
+  /// as telas das 6 abas principais não precisam de um.
   final Widget? leading;
 
   @override
@@ -151,7 +151,7 @@ class SystemScaffold extends StatelessWidget {
   final List<Widget>? actions;
 
   /// Widget antes do título no header padrão — usado pelas telas
-  /// secundárias (fora das 5 abas) pra oferecer um botão de voltar visível
+  /// secundárias (fora das 6 abas) pra oferecer um botão de voltar visível
   /// (ver [SystemBackButton]).
   final Widget? leading;
 
@@ -159,7 +159,7 @@ class SystemScaffold extends StatelessWidget {
   /// widget próprio, para telas que precisem de algo diferente.
   final Widget? header;
 
-  /// Slot fixo abaixo do corpo — a `SystemNavigationBar` das 5 abas
+  /// Slot fixo abaixo do corpo — a `SystemNavigationBar` das 6 abas
   /// principais (Fase 4), mas serve pra qualquer barra de ação fixa no
   /// rodapé (ex.: "Finalizar treino" na sessão ativa, Fase 6). Quando
   /// informado, a `SafeArea` inferior passa a ser responsabilidade dele.

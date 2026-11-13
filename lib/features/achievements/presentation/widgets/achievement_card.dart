@@ -9,7 +9,7 @@ import '../../../../design_system/system_spacing.dart';
 import '../../../../design_system/system_text_styles.dart';
 import '../../domain/achievement.dart';
 
-/// 3 estados reais (seção 15/22 da Fase 8):
+/// 3 estados reais:
 /// - DESBLOQUEADA: `Achievement.status == desbloqueada` (persistido).
 /// - DISPONÍVEL: ainda bloqueada, mas com progresso > 0 — derivado, não
 ///   persistido (uma conquista progressiva "3/10" já em andamento).
@@ -21,7 +21,7 @@ enum _EstadoVisual { bloqueada, disponivel, desbloqueada }
 /// [HexagonClipper] da Fase 2, mesma geometria do [RankBadge]), título,
 /// descrição, progresso real quando aplicável, e o rótulo de estado.
 ///
-/// Diferença deliberada do Lovable: lá, uma conquista bloqueada esconde
+/// Diferença deliberada do protótipo: lá, uma conquista bloqueada esconde
 /// título/descrição ("???"/"Requisito oculto"). Aqui sempre mostramos os
 /// dois — nosso catálogo não é secreto (o CLAUDE.md já documenta todas as
 /// conquistas abertamente), e esconder o nome impediria mostrar progresso

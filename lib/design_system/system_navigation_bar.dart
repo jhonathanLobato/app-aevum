@@ -28,7 +28,7 @@ class SystemNavItem {
 /// fonte central de estado é o `StatefulShellRoute` do go_router). Nenhuma
 /// tela deve instanciar sua própria cópia desta barra.
 ///
-/// Diferenças do Lovable: sem `backdrop-blur-xl` (a barra fica num slot
+/// Diferenças do protótipo: sem `backdrop-blur-xl` (a barra fica num slot
 /// fixo do `Scaffold`, nunca sobre conteúdo rolando por baixo, então o
 /// blur não agregaria nada visível ao custo de o calcular); o indicador
 /// luminoso da aba ativa, que no CSS flutua 9px acima da barra via

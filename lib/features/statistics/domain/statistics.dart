@@ -17,7 +17,7 @@ class GlobalStatistics {
   final int totalPRs;
   final double volumeTotal;
 
-  /// Soma de todas as repetições já registradas (Fase 8 — usado por
+  /// Soma de todas as repetições já registradas (usado por
   /// [PlayerAttributesCalculator] pra Resistência). Mesma agregação SQL que
   /// já calculava [volumeTotal], só mais uma coluna somada — sem query nova.
   final int totalRepeticoes;

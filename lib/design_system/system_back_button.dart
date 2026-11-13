@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'system_colors.dart';
 
-/// Botão de voltar do header das telas secundárias (fora das 5 abas, sem
+/// Botão de voltar do header das telas secundárias (fora das 6 abas, sem
 /// `AppBar`). Usa `Navigator.maybePop` pra funcionar igual ao botão voltar
 /// do Android, independente do roteador.
 class SystemBackButton extends StatelessWidget {

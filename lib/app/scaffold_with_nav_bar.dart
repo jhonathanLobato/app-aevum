@@ -3,7 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import '../design_system/system_navigation_bar.dart';
 
-/// Casca das 5 áreas principais: o conteúdo da aba atual (um `IndexedStack`
+/// Casca das 6 áreas principais: o conteúdo da aba atual (um `IndexedStack`
 /// administrado pelo `StatefulShellRoute` do go_router) embaixo, e a
 /// [SystemNavigationBar] fixa abaixo dele.
 ///

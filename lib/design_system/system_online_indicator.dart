@@ -10,7 +10,7 @@ import 'system_motion.dart';
 /// neste widget pequeno de propósito: só o ponto e o texto repintam a cada
 /// frame do pulso, nunca o resto do cabeçalho (que não depende de
 /// `AnimationController` nenhum). Usa `SingleTickerProviderStateMixin`, o
-/// que automaticamente respeita o `TickerMode` do `IndexedStack` das 5 abas
+/// que automaticamente respeita o `TickerMode` do `IndexedStack` das 6 abas
 /// (Fase 4/go_router): quando esta aba não está em foco, o `Offstage` +
 /// `TickerMode(enabled: false)` que o próprio `StatefulShellRoute.indexedStack`
 /// já aplica pausa este ticker sozinho, sem nenhum código extra aqui.

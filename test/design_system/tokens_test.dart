@@ -34,7 +34,7 @@ void main() {
     expect(glow.single.spreadRadius, -8);
   });
 
-  test('tamanhos de corte diagonal seguem a hierarquia do Lovable', () {
+  test('tamanhos de corte diagonal seguem a hierarquia do protótipo', () {
     expect(SystemCutSizes.panel, greaterThan(SystemCutSizes.button));
     expect(SystemCutSizes.button, greaterThan(SystemCutSizes.input));
     expect(SystemCutSizes.input, greaterThan(SystemCutSizes.small));

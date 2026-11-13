@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// Paleta portada de `styles.css` (Lovable), bloco `:root`, todo definido
+/// Paleta portada de `styles.css` (protótipo), bloco `:root`, todo definido
 /// originalmente em `oklch()`.
 ///
 /// Os valores abaixo são o resultado já calculado da conversão OKLCH → sRGB
@@ -11,14 +11,14 @@ class SystemPalette {
   const SystemPalette._();
 
   /// oklch(0.14 0.03 265) — `--background`. Também usado como
-  /// `--primary-foreground` e `--accent-foreground` no Lovable.
+  /// `--primary-foreground` e `--accent-foreground` no protótipo.
   static const background = Color(0xFF040915);
 
   /// oklch(0.96 0.01 240) — `--foreground` / `--card-foreground` /
   /// `--popover-foreground`.
   static const foreground = Color(0xFFECF3F8);
 
-  /// oklch(0.2 0.04 262) — `--surface` / `--card` (cor base; o Lovable usa
+  /// oklch(0.2 0.04 262) — `--surface` / `--card` (cor base; o protótipo usa
   /// isso sempre com alpha ~55%, ver [SystemOpacities.surface]).
   static const surface = Color(0xFF0C1628);
 

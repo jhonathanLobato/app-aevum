@@ -12,7 +12,7 @@ import 'system_text_styles.dart';
 
 /// Barra de XP do sistema, direto de `XpBar.tsx`.
 ///
-/// O preenchimento anima para o novo valor (`transition-[width]` do Lovable,
+/// O preenchimento anima para o novo valor (`transition-[width]` do protótipo,
 /// via [SystemDurations.xpFill]). Desde a Fase 9, quando [value] realmente
 /// AUMENTA em relação ao build anterior, um brilho varre a barra uma única
 /// vez (`xp-shine`) e para — nunca fica em loop, e não dispara de novo só
@@ -258,7 +258,7 @@ class _XpShine extends StatelessWidget {
 }
 
 /// Formata um inteiro com separador de milhar `.` (equivalente a
-/// `toLocaleString("pt-BR")` no Lovable), sem depender do pacote `intl`
+/// `toLocaleString("pt-BR")` no protótipo), sem depender do pacote `intl`
 /// só para isso.
 String _formatXp(int value) {
   final digits = value.toString();
@@ -271,7 +271,7 @@ String _formatXp(int value) {
 }
 
 /// As ~40 divisões verticais internas da trilha da barra (`border-primary/10`
-/// repetido 40x no Lovable). Desenhadas com um único `CustomPainter` estático
+/// repetido 40x no protótipo). Desenhadas com um único `CustomPainter` estático
 /// em vez de 40 widgets, bem mais barato para o Android.
 class _XpSegments extends StatelessWidget {
   const _XpSegments();

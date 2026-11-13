@@ -1,6 +1,6 @@
 /// Constantes geométricas da identidade visual "cortes diagonais".
 ///
-/// O Lovable usa `clip-path: polygon(...)` para cortar dois cantos opostos
+/// O protótipo usa `clip-path: polygon(...)` para cortar dois cantos opostos
 /// (superior-esquerdo + inferior-direito) de painéis, botões, inputs e
 /// elementos de navegação, em tamanhos diferentes por componente. O
 /// `RankBadge` e os ícones de conquista usam uma forma diferente — um
@@ -24,7 +24,7 @@ class SystemCutSizes {
   static const small = 6.0;
 }
 
-/// Espessura de borda — sempre 1px (hairline) em toda a interface do Lovable.
+/// Espessura de borda — sempre 1px (hairline) em toda a interface do protótipo.
 class SystemBorders {
   const SystemBorders._();
 

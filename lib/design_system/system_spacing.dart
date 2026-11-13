@@ -1,4 +1,4 @@
-/// Escala de espaçamento observada nos componentes do Lovable (múltiplos de
+/// Escala de espaçamento observada nos componentes do protótipo (múltiplos de
 /// 4px, igual à escala padrão do Tailwind). Fase 2 em diante referencia
 /// esta escala em vez de números soltos.
 class SystemSpacing {

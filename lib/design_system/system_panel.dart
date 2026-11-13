@@ -10,7 +10,7 @@ import 'system_text_styles.dart';
 /// Painel holográfico do sistema, direto de `Panel.tsx`.
 ///
 /// Reproduz os cortes diagonais, o `gradient-panel`, a borda ciano
-/// translúcida e os corner ticks do Lovable sem `BackdropFilter`: o
+/// translúcida e os corner ticks do protótipo sem `BackdropFilter`: o
 /// glassmorphism vem só de gradiente + borda + sombra, para não pesar em
 /// telas com vários painéis simultâneos no Android.
 ///
