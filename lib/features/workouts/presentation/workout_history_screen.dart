@@ -16,7 +16,6 @@ import '../../activities/domain/sport_activity.dart';
 import '../../activities/presentation/sport_activity_format.dart';
 import '../domain/workout_session.dart';
 import 'general_history.dart';
-import 'workout_session_providers.dart';
 
 const _nomesDosMeses = [
   'JANEIRO',
@@ -188,94 +187,73 @@ class _MesSection extends StatelessWidget {
   }
 }
 
-class _SessionCard extends ConsumerStatefulWidget {
+class _SessionCard extends StatelessWidget {
   const _SessionCard({required this.sessao});
 
   final WorkoutSessionSummary sessao;
 
   @override
-  ConsumerState<_SessionCard> createState() => _SessionCardState();
-}
-
-class _SessionCardState extends ConsumerState<_SessionCard> {
-  bool _expandido = false;
-
-  @override
   Widget build(BuildContext context) {
-    final sessao = widget.sessao;
-
-    return Semantics(
-      button: true,
-      expanded: _expandido,
-      label: 'Treino ${sessao.nome}',
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: () => setState(() => _expandido = !_expandido),
-        child: SystemPanel(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
-                children: [
-                  const Icon(Icons.fitness_center,
-                      size: 16, color: SystemPalette.primary),
-                  const SizedBox(width: SystemSpacing.sm),
-                  Expanded(
-                    child: Text(
-                      sessao.nome.toUpperCase(),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: SystemTextStyles.displaySmall,
-                    ),
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => context.push('/sessions/${sessao.id}'),
+      child: SystemPanel(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.fitness_center,
+                    size: 16, color: SystemPalette.primary),
+                const SizedBox(width: SystemSpacing.sm),
+                Expanded(
+                  child: Text(
+                    sessao.nome.toUpperCase(),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: SystemTextStyles.displaySmall,
                   ),
-                  Icon(
-                    _expandido ? Icons.expand_less : Icons.expand_more,
-                    size: 20,
-                    color: SystemPalette.mutedForeground,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 2),
-              Text(
-                _formatarData(sessao.data),
-                style: SystemTextStyles.label.copyWith(
-                  fontSize: 9.6,
-                  color: SystemPalette.violet,
                 ),
-              ),
-              const SizedBox(height: SystemSpacing.md),
-              Row(
-                children: [
-                  Expanded(
-                    child: SystemStatBox(
-                      label: 'EXERCÍCIOS',
-                      value: '${sessao.totalExercicios}',
-                    ),
-                  ),
-                  const SizedBox(width: SystemSpacing.sm),
-                  Expanded(
-                    child: SystemStatBox(
-                      label: 'VOLUME',
-                      value: '${sessao.volumeTotal.toStringAsFixed(0)} KG',
-                    ),
-                  ),
-                  const SizedBox(width: SystemSpacing.sm),
-                  Expanded(
-                    child: SystemStatBox(
-                      label: 'DURAÇÃO',
-                      value: sessao.duracaoSegundos == null
-                          ? '—'
-                          : _formatarDuracao(sessao.duracaoSegundos!),
-                    ),
-                  ),
-                ],
-              ),
-              if (_expandido) ...[
-                const SizedBox(height: SystemSpacing.md),
-                _DetalheDoTreino(sessionId: sessao.id),
+                const Icon(Icons.chevron_right,
+                    size: 18, color: SystemPalette.mutedForeground),
               ],
-            ],
-          ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              _formatarData(sessao.data),
+              style: SystemTextStyles.label.copyWith(
+                fontSize: 9.6,
+                color: SystemPalette.violet,
+              ),
+            ),
+            const SizedBox(height: SystemSpacing.md),
+            Row(
+              children: [
+                Expanded(
+                  child: SystemStatBox(
+                    label: 'EXERCÍCIOS',
+                    value: '${sessao.totalExercicios}',
+                  ),
+                ),
+                const SizedBox(width: SystemSpacing.sm),
+                Expanded(
+                  child: SystemStatBox(
+                    label: 'VOLUME',
+                    value: '${sessao.volumeTotal.toStringAsFixed(0)} KG',
+                  ),
+                ),
+                const SizedBox(width: SystemSpacing.sm),
+                Expanded(
+                  child: SystemStatBox(
+                    label: 'DURAÇÃO',
+                    value: sessao.duracaoSegundos == null
+                        ? '—'
+                        : _formatarDuracao(sessao.duracaoSegundos!),
+                  ),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );
@@ -290,106 +268,6 @@ class _SessionCardState extends ConsumerState<_SessionCard> {
     final minutos = (segundosTotais ~/ 60).toString().padLeft(2, '0');
     final segundos = (segundosTotais % 60).toString().padLeft(2, '0');
     return '$minutos:$segundos';
-  }
-}
-
-/// Exercícios do treino (na ordem em que foram feitos) com suas séries.
-class _DetalheDoTreino extends ConsumerWidget {
-  const _DetalheDoTreino({required this.sessionId});
-
-  final int sessionId;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final sessaoAsync = ref.watch(workoutSessionProvider(sessionId));
-
-    return sessaoAsync.when(
-      data: (sessao) {
-        if (sessao == null || sessao.series.isEmpty) {
-          return const SystemEmptyState(message: 'NENHUMA SÉRIE REGISTRADA');
-        }
-        final porExercicio = <int, List<SetEntryRecord>>{};
-        for (final serie in sessao.series) {
-          porExercicio.putIfAbsent(serie.exerciseId, () => []).add(serie);
-        }
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            for (final series in porExercicio.values) ...[
-              _ExercicioDoTreino(series: series),
-              const SizedBox(height: SystemSpacing.sm),
-            ],
-          ],
-        );
-      },
-      loading: () => const Padding(
-        padding: EdgeInsets.symmetric(vertical: SystemSpacing.md),
-        child: Center(
-          child: SizedBox(
-            width: 20,
-            height: 20,
-            child: CircularProgressIndicator(
-                strokeWidth: 2, color: SystemPalette.primary),
-          ),
-        ),
-      ),
-      error: (error, stackTrace) => const SystemEmptyState(
-        icon: Icons.error_outline,
-        message: 'ERRO AO CARREGAR O TREINO',
-      ),
-    );
-  }
-}
-
-class _ExercicioDoTreino extends StatelessWidget {
-  const _ExercicioDoTreino({required this.series});
-
-  final List<SetEntryRecord> series;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(
-          horizontal: SystemSpacing.md, vertical: SystemSpacing.sm),
-      decoration: BoxDecoration(
-        color:
-            SystemPalette.surface2.withValues(alpha: SystemOpacities.surface2),
-        border: Border(
-          left: BorderSide(
-              color: SystemPalette.primary.withValues(alpha: 0.5), width: 2),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            series.first.exerciseNome.toUpperCase(),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: SystemTextStyles.displaySmall.copyWith(fontSize: 14),
-          ),
-          const SizedBox(height: 4),
-          for (final serie in series)
-            Padding(
-              padding: const EdgeInsets.only(top: 2),
-              child: Row(
-                children: [
-                  SizedBox(
-                    width: 28,
-                    child: Text('${serie.serie}',
-                        style: SystemTextStyles.label
-                            .copyWith(color: SystemPalette.primary)),
-                  ),
-                  Text(
-                    '${serie.carga.toStringAsFixed(1)} KG × ${serie.repeticoes}',
-                    style: SystemTextStyles.body,
-                  ),
-                ],
-              ),
-            ),
-        ],
-      ),
-    );
   }
 }
 

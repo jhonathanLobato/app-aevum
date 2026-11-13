@@ -252,13 +252,11 @@ void main() {
     await _finish(tester, db);
   });
 
-  testWidgets('tocar no treino expande exercícios e séries, sem alterar XP',
+  testWidgets('tocar em musculação abre a sessão, sem alterar XP',
       (tester) async {
     final db = _memoryDb();
     final exId = await db.into(db.exercises).insert(
         ExercisesCompanion.insert(nome: 'Supino reto', grupoMuscular: 'Peito'));
-    final exId2 = await db.into(db.exercises).insert(
-        ExercisesCompanion.insert(nome: 'Crucifixo', grupoMuscular: 'Peito'));
     final repo = DriftWorkoutSessionRepository(
       db,
       DriftPersonalRecordRepository(db),
@@ -269,35 +267,17 @@ void main() {
     final id = await repo.start(nome: 'Treino livre');
     await repo.logSet(
         sessionId: id, exerciseId: exId, repeticoes: 10, carga: 30);
-    await repo.logSet(
-        sessionId: id, exerciseId: exId, repeticoes: 8, carga: 32);
-    await repo.logSet(
-        sessionId: id, exerciseId: exId2, repeticoes: 12, carga: 10);
     await repo.finish(id, duracao: const Duration(minutes: 5));
     final xpAntes = (await db.select(db.users).getSingle()).xp;
 
     await _pump(tester, db);
-    // Cartão resumido: nome, nº de exercícios e volume; detalhe recolhido.
-    expect(find.text('TREINO LIVRE'), findsOneWidget);
     expect(find.text('EXERCÍCIOS'), findsOneWidget);
-    expect(find.text('2'), findsOneWidget);
-    expect(find.text('SUPINO RETO'), findsNothing);
-
     await tester.tap(find.text('TREINO LIVRE'));
     await _aguardar(tester);
 
-    expect(find.text('SUPINO RETO'), findsOneWidget);
-    expect(find.text('CRUCIFIXO'), findsOneWidget);
     expect(find.text('30.0 KG × 10'), findsOneWidget);
-    expect(find.text('32.0 KG × 8'), findsOneWidget);
-    expect(find.text('10.0 KG × 12'), findsOneWidget);
-    // Continua no histórico (não navega para outra tela).
-    expect(find.text('LINHA DO TEMPO'), findsOneWidget);
+    expect(find.text('TREINO FINALIZADO'), findsOneWidget);
     expect((await db.select(db.users).getSingle()).xp, xpAntes);
-
-    await tester.tap(find.text('TREINO LIVRE'));
-    await _aguardar(tester);
-    expect(find.text('SUPINO RETO'), findsNothing);
     await _finish(tester, db);
   });
 
