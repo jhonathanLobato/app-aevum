@@ -26,3 +26,6 @@ android/key.properties
 Thumbs.db
 
 __pycache__/
+
+# Símbolos de depuração do build obfuscado (guardar fora do app)
+symbols/

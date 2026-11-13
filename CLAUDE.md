@@ -1500,3 +1500,34 @@ tempo.
   SnackBar: missão diária cumprida e exame iniciado. O catálogo de conquistas é
   criado de forma idempotente (`insertOrIgnore`) porque a abertura do app e a
   tela de Conquistas podem montá-lo ao mesmo tempo.
+
+## 30.12 Build de release e tamanho do app
+
+* **Os ~182 MB eram o APK de debug** (`app-debug.apk`, 182,4 MB). O app de
+  verdade (release) é muito menor. Nunca medir o tamanho pelo debug.
+* **Gerar o build otimizado**: `.\tool\build_release.ps1` (APKs por
+  arquitetura; instalar o `app-arm64-v8a-release.apk` no celular) ou
+  `.\tool\build_release.ps1 -Universal` (1 APK que serve em qualquer celular,
+  ~58 MB) ou `.\tool\build_release.ps1 -Bundle` (App Bundle `.aab` para a Play
+  Store). **Para amigos**: mandar o `app-arm64-v8a-release.apk` (~20 MB; serve
+  na quase totalidade dos celulares dos últimos anos) e, se não instalar, o
+  universal. O APK é assinado com a chave de debug: instala por fora da loja
+  ("fontes desconhecidas"), mas não serve para a Play Store.
+  Equivale a `flutter build apk --release --split-per-abi --obfuscate
+  --split-debug-info=symbols/<versão>` (ou `appbundle`).
+* **Símbolos**: ficam em `symbols/<versão>/` (ignorado pelo git, fora do app).
+  Guardar a pasta de cada versão publicada: sem ela não dá para ler stack
+  traces do build obfuscado (`flutter symbolize`).
+* **Medir**: `flutter build apk --release --analyze-size
+  --target-platform android-arm64` e abrir o JSON no DevTools.
+* R8/minify e redução de recursos já vêm ativos no release (o plugin do
+  Flutter os liga; ver `build/app/outputs/mapping/release`). O código
+  Java/Kotlin tem só ~0,2 MB, então não há ganho em mexer no Gradle.
+* **Fontes**: Orbitron (um arquivo variável) e Rajdhani só nos pesos usados:
+  500 (corpo) e 600 (rótulos). Se algum texto novo usar Rajdhani em outro
+  peso (400/700), declarar o arquivo correspondente no `pubspec.yaml`.
+* `sqlite3_flutter_libs` não é importado em Dart, mas é ele que empacota o
+  SQLite nativo no Android: **não remover**.
+* Medidas (MiB): debug 174 (182,4 MB) · release universal 59,6 · release
+  arm64 (sem otimizar) 24,0 · **release arm64 otimizado 19,5** · AAB 54,0
+  (envio à Play Store; o download do usuário é ≈ o arm64).

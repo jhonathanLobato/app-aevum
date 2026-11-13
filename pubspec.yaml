@@ -37,11 +37,8 @@ flutter:
           weight: 900
     - family: Rajdhani
       fonts:
-        - asset: assets/fonts/Rajdhani-Regular.ttf
-          weight: 400
+        # Só os pesos usados no app (500 = corpo, 600 = rótulos).
         - asset: assets/fonts/Rajdhani-Medium.ttf
           weight: 500
         - asset: assets/fonts/Rajdhani-SemiBold.ttf
           weight: 600
-        - asset: assets/fonts/Rajdhani-Bold.ttf
-          weight: 700
