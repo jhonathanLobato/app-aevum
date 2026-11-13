@@ -1241,13 +1241,66 @@ SISTEMA, TREINOS, ATIVIDADES, MISSÕES, STATUS.
   (Força/Resistência/Constância) estão comentados na tela (código mantido
   para uso futuro) e o "Detalhe por exercício" foi removido (o histórico
   cobre). A identidade fica só na tela Sistema.
-* **Tela de Rank** (`/rank`): lugar único de tudo sobre rank — explica os
-  ranks F a S (nível mínimo, tempo mínimo, requisitos de cada exame), a
-  janela de 7 dias e a regra de reinício; mostra o que falta para liberar o
-  próximo exame (nível e dias) ou o progresso do exame em andamento (cada
-  requisito em número absoluto e os dias restantes) e o botão "Iniciar
-  exame". Os cards de exame na Sistema e em Missões são só um resumo que
-  leva para essa tela.
+* **Tela de Rank** (`/rank`): lugar único de tudo sobre rank. Ordem:
+  * **Sua situação**: uma frase-resumo no topo ("Você é Rank F. Para liberar
+    o exame faltam 6 níveis e 12 pontos de experiência."; muda conforme a
+    fase: liberado com dias para iniciar, em andamento com dias restantes,
+    rank máximo), rank e nível, a **experiência de caçador** (atual /
+    necessária, com barra), o botão de exame e o detalhe da fase (o que falta,
+    a janela de início ou o progresso do exame em número absoluto).
+  * **Botão "Iniciar exame"**: sempre visível (exceto no rank S). Apagado e
+    sem ação enquanto o exame não está liberado, com o motivo em números
+    abaixo (níveis, experiência e/ou menos de 2 dias de treino programados);
+    ativo na janela de 7 dias, mostrando os dias restantes (apagado se faltar
+    programação); durante o exame vira "Exame em andamento", apagado.
+  * **Como funciona**: seções recolhíveis, fechadas por padrão, em linguagem
+    simples (tom direto, sem jargão): O que é o rank (e rank × nível), Como
+    subir de rank (3 passos), Experiência de caçador, O exame, Se falhar,
+    Tabela de ranks (nível, experiência, prazo e requisitos de cada exame) e
+    Perguntas rápidas. Textos em `_ComoFunciona` (`rank_screen.dart`).
+  Os cards de exame na Sistema e em Missões são só um resumo que leva para
+  essa tela.
+
+## 30.1.1 Ficha do Caçador (Perfil), Corpo e Preferências
+
+Acesso: só pelo avatar do cabeçalho da tela Sistema (`/profile`). A tela se
+chama **FICHA DO CAÇADOR** (o mesmo texto aparece no título da aba Status).
+Nada é gravado até tocar em **Salvar** no fim; sair sem salvar descarta.
+
+* **Identidade**: nome, avatar, classe, **título** e **Data do Despertar**.
+  O título é escolhido numa lista (`kTitleCatalog`); bloqueados aparecem com
+  cadeado e a condição. "Despertado" é o padrão de todos. Por conquista:
+  Primeiros Passos→Iniciante, Evolução→Em Evolução, Disciplina→Disciplinado,
+  Constância→Constante, Veterano→Veterano, Superação→Inquebrável, Quebra de
+  Recorde→Quebrador de Recordes, Primeiro Milhar→Levantador. Por rank
+  alcançado: Caçador Rank E a S. A liberação é calculada das conquistas e do
+  rank atuais (nada extra no banco; `users.titulo` guarda o nome escolhido).
+  Data do Despertar = o mais antigo entre `users.criado_em` e o primeiro
+  treino/atividade/registro corporal, com "X dias de jornada" (não editável).
+* **Corpo** (quadro na Ficha): altura, data de nascimento (mostra a idade) e
+  sexo, todos opcionais, mais o resumo (peso atual, variação desde o primeiro
+  registro, IMC com faixa: <18,5 abaixo do peso, <25 normal, <30 sobrepeso,
+  senão obesidade; usa o último peso e a altura). Tocar no resumo abre a tela
+  **Corpo** (`/body`): "Novo registro" (`/body/new`; Salvar, sair descarta),
+  evolução com seletor de medida e gráfico de linha (fl_chart), atual e
+  variação em relação ao primeiro e ao registro anterior de cada medida, e a
+  lista de registros (tocar edita, lixeira exclui com confirmação). Registro
+  corporal (`body_records`): data, peso, % de gordura, braço, peito, cintura,
+  quadril, coxa e panturrilha, todos opcionais, mas ao menos um valor.
+* **Preferências**: tema escuro/claro e unidades (peso kg/lb, comprimento
+  cm/pol; distância segue em km). O tema claro é a mesma interface com a
+  luminosidade invertida por um filtro de cor aplicado ao app inteiro
+  (`filtroTemaClaro` em `app.dart`), porque a paleta do Sistema é um conjunto
+  de constantes escuras. **O banco guarda sempre kg e cm**; só a exibição e a
+  entrada convertem (`Units`, via `unitsProvider`): cargas e séries do
+  treino, recorde atual, diálogo de PR, volumes (Status e Histórico),
+  histórico do exercício e Corpo. Textos já gravados no banco (descrição do
+  desafio de carga) e o texto fixo da conquista "Primeiro Milhar" continuam
+  em kg. O rascunho de carga ainda não registrado fica no número digitado.
+* Banco v8: `users` ganhou altura_cm, nascimento, sexo, unidade_peso,
+  unidade_comprimento e criado_em; tabela `body_records`. Na migração o título
+  de todos vira "Despertado" (os outros liberam sozinhos pelo que já
+  conquistaram).
 
 ## 30.2 Missão diária
 
@@ -1288,9 +1341,23 @@ total: 4.770 / 14.520 / 31.020 / 57.270 / 97.020 / 164.020).
 
 **Liberação**: o nível sobe pelo XP, mas o **rank só sobe ao passar no
 exame**. O exame do próximo rank só é liberado quando os DOIS forem
-cumpridos: o nível mínimo do próximo rank **e** um tempo mínimo no rank
-atual — **F=2, E=3, D=5, C=7, B=9, A=10 meses** (contados da data em que
-entrou no rank; usuários antigos contam a partir da data da migração).
+cumpridos: o nível mínimo do próximo rank **e** a **experiência de caçador**
+mínima do rank atual — **F=12, E=15, D=25, C=50, B=95, A=210 pontos**. Não
+existe mais tempo mínimo em meses.
+
+**Experiência de caçador** (separada do XP; mostrada na tela de Rank e no
+quadro Rank do Status como "atual / necessária" com barra):
+
+* Treino de academia concluído = **1 ponto** (no máximo um por dia, como no
+  exame).
+* Atividade extra de 30+ min = **0,5 ponto**, contando no máximo **4 por
+  semana** (segunda a domingo; vale a data da atividade).
+* Missão diária **não** dá experiência (já é requisito do exame).
+* É acumulada **dentro de cada rank** e zera ao subir de rank (o excedente,
+  inclusive os treinos feitos durante o exame, não passa para o próximo).
+* É calculada dos dados reais desde a data em que entrou no rank (`rankDesde`;
+  usuários antigos contam a partir da migração), então editar ou excluir um
+  registro ajusta os pontos sozinho.
 
 **Início (manual)**: o exame não começa sozinho ao ser liberado. Na abertura
 do app aparece o aviso "[SISTEMA] Exame de reavaliação disponível". O usuário
@@ -1324,8 +1391,8 @@ Requisitos, todos dentro do prazo:
   extras são escolhidas outra vez; sem iniciar, começa sozinho no 8º dia).
 * Ao passar: overlay "RANK UP" e a conquista "Rank E" conforme o exame. Se o
   app estiver fechado, o RANK UP fica **pendente** e o overlay aparece na
-  próxima abertura (até ser exibido). Passar de rank reinicia a contagem do
-  tempo mínimo no novo rank.
+  próxima abertura (até ser exibido). Passar de rank zera a experiência de
+  caçador.
 
 ## 30.6 Biblioteca padrão e treinos
 
@@ -1350,16 +1417,32 @@ PR, missão, conquista nem contar como treino de academia.
 
 ## 30.9 Calibração esperada (simulação)
 
-Com estas regras (curva 480+10n, tempo mínimo por rank, exames acima) e PRs
-mais raros ao longo do tempo (meia-vida de 12 meses, piso de 25%), supondo
-que o exame é iniciado no dia da liberação:
+Script: `python tool/rank_simulation.py` (esperança diária; `--meses` roda as
+regras antigas, de tempo mínimo, que servem de verificação do modelo: dão 4,4 /
+4,4 / 4,7 anos / trava no B, contra 4,2 / 4,2 / 4,7 / B da calibração
+anterior). Premissas: curva 480+10n, PRs mais raros ao longo do tempo
+(meia-vida de 12 meses, piso de 25%), 97% dos treinos programados cumpridos,
+folgas usadas nos dias de missão perdida, extras por semana (Hardcore 2,
+Constante 1, Casual 0,5) e exame iniciado no dia da liberação.
+
+| Rank | Nível mínimo | Experiência mínima (no rank anterior) | Prazo do exame |
+| ---- | -----------: | ------------------------------------: | -------------: |
+| E | 10 | 12 | 35 dias |
+| D | 25 | 15 | 50 dias |
+| C | 45 | 25 | 70 dias |
+| B | 70 | 50 | 90 dias |
+| A | 100 | 95 | 110 dias |
+| S | 140 | 210 | 140 dias |
 
 | Perfil | Tempo até o rank S |
 | ------ | ------------------ |
-| Hardcore (6 treinos/sem, missão 100%) | ~4,2 anos |
-| Constante (4 treinos/sem, missão 90%) | ~4,2 anos |
+| Hardcore (6 treinos/sem, missão 100%) | ~2,6 anos |
+| Constante (4 treinos/sem, missão 90%) | ~3,4 anos |
 | Casual (3 treinos/sem), missão em 80% dos dias | ~4,7 anos |
 | Casual (3 treinos/sem), missão em 70% dos dias | não passa do B (o exame B→A pede 85% de missões) |
 
-O tempo mínimo por rank (36 meses no total) domina: Hardcore e Constante
-empatam no S, e o XP só pesa para o Casual.
+Sem o tempo mínimo, quem treina mais chega antes. O gargalo de todos os perfis
+é o **nível** (XP); a experiência mínima atua como piso (impede subir de rank
+só com missão diária e atividades, sem treinar) e não atrasa nenhum dos
+perfis acima. Os prazos dos exames (495 dias no total) também contam no
+tempo.

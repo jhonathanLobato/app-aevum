@@ -15,8 +15,8 @@ void main() {
   late DriftProfileRepository perfil;
   late DriftRankExamRepository repo;
 
-  // Segunda-feira 02/03/2026, 10h: o usuário entrou no rank F em 01/01, então
-  // os 2 meses mínimos no F já passaram.
+  // Segunda-feira 02/03/2026, 10h: o usuário entrou no rank F em 01/01 e, por
+  // padrão, já acumulou a experiência mínima do F (12 treinos).
   final inicio = DateTime(2026, 3, 2, 10);
   final entrouNoRank = DateTime(2026, 1, 1, 9);
   var agora = inicio;
@@ -32,12 +32,24 @@ void main() {
 
   tearDown(() => db.close());
 
-  /// Cria o usuário em 01/01 (entrada no rank F) já com XP para o [nivel].
-  Future<void> usuarioNoNivel(int nivel) async {
+  Future<void> treinoNoDia(DateTime dia) =>
+      db.into(db.workoutSessions).insert(WorkoutSessionsCompanion.insert(
+            nome: 'Treino',
+            status: WorkoutSessionStatus.concluido,
+            data: Value(DateTime(dia.year, dia.month, dia.day, 18)),
+          ));
+
+  /// Cria o usuário em 01/01 (entrada no rank F) já com XP para o [nivel] e
+  /// [treinos] treinos concluídos em dias distintos depois da entrada no rank
+  /// (1 ponto de experiência cada; o mínimo do F é 12).
+  Future<void> usuarioNoNivel(int nivel, {int treinos = 12}) async {
     final relogio = agora;
     agora = entrouNoRank;
     await perfil.addXp(const LevelCurve().xpNoInicioDoNivel(nivel));
     agora = relogio;
+    for (var i = 0; i < treinos; i++) {
+      await treinoNoDia(DateTime(2026, 1, 2 + i));
+    }
   }
 
   /// Dias de treino programados (1=segunda … 7=domingo).
@@ -49,13 +61,6 @@ void main() {
           .insert(ScheduleDaysCompanion.insert(weekday: Value(d)));
     }
   }
-
-  Future<void> treinoNoDia(DateTime dia) =>
-      db.into(db.workoutSessions).insert(WorkoutSessionsCompanion.insert(
-            nome: 'Treino',
-            status: WorkoutSessionStatus.concluido,
-            data: Value(DateTime(dia.year, dia.month, dia.day, 18)),
-          ));
 
   Future<void> atividade(SportType tipo, DateTime quando, {int min = 30}) =>
       db.into(db.sportActivities).insert(SportActivitiesCompanion.insert(
@@ -86,26 +91,29 @@ void main() {
     expect(await repo.iniciarExame(extras), IniciarExameResultado.iniciado);
   }
 
-  group('liberação: nível E tempo mínimo no rank', () {
-    test('nível ok mas sem o tempo mínimo: continua bloqueado', () async {
+  group('liberação: nível E experiência mínima no rank', () {
+    test('nível ok mas sem a experiência mínima: continua bloqueado', () async {
       await programar([1, 3, 5]);
-      await usuarioNoNivel(10);
-      agora = DateTime(2026, 2, 28, 10); // faltam 2 dias para 2 meses
+      await usuarioNoNivel(10, treinos: 11);
 
       expect(await repo.sincronizar(), isEmpty);
-      final s = await status();
+      var s = await status();
       expect(s.fase, RankExamPhase.bloqueado);
       expect(s.niveisFaltando, 0);
-      expect(s.diasParaLiberarPorTempo(agora), 1);
-      expect(s.mesesMinimos, 2);
+      expect(s.experiencia, 11);
+      expect(s.experienciaMinima, 12);
+      expect(s.experienciaFaltando, 1);
+      expect(s.progressoExperiencia, closeTo(11 / 12, 1e-9));
 
-      agora = DateTime(2026, 3, 1, 10); // 2 meses completos
+      await treinoNoDia(DateTime(2026, 2, 1)); // 12º treino
       final eventos = await repo.sincronizar();
       expect(eventos.single.tipo, RankExamEventType.liberado);
-      expect((await status()).fase, RankExamPhase.disponivel);
+      s = await status();
+      expect(s.fase, RankExamPhase.disponivel);
+      expect(s.experienciaFaltando, 0);
     });
 
-    test('tempo ok mas sem o nível mínimo: continua bloqueado', () async {
+    test('experiência ok mas sem o nível mínimo: continua bloqueado', () async {
       await programar([1, 3, 5]);
       await usuarioNoNivel(9);
 
@@ -113,7 +121,7 @@ void main() {
       final s = await status();
       expect(s.fase, RankExamPhase.bloqueado);
       expect(s.niveisFaltando, 1);
-      expect(s.diasParaLiberarPorTempo(agora), 0);
+      expect(s.experienciaFaltando, 0);
     });
 
     test('libera quando os DOIS são cumpridos, uma única vez', () async {
@@ -146,17 +154,61 @@ void main() {
       await (db.update(db.users))
           .write(const UsersCompanion(rankDesde: Value<DateTime?>(null)));
 
-      expect(await repo.sincronizar(), isEmpty); // 2 meses só a partir de hoje
+      // Os treinos anteriores a hoje não contam: experiência zerada.
+      expect(await repo.sincronizar(), isEmpty);
       final u = await db.select(db.users).getSingle();
       expect(u.rankDesde, agora);
-      agora = DateTime(2026, 5, 2, 10);
-      expect(
-          (await repo.sincronizar()).single.tipo, RankExamEventType.liberado);
+      expect((await status()).experiencia, 0);
     });
 
-    test('tempo mínimo por rank: F2, E3, D5, C7, B9, A10 meses', () {
-      expect(RankExamValues.mesesMinimosNoRank,
-          {'F': 2, 'E': 3, 'D': 5, 'C': 7, 'B': 9, 'A': 10});
+    test('experiência mínima por rank: F12, E15, D25, C50, B95, A210', () {
+      expect(RankExamValues.experienciaMinimaNoRank,
+          {'F': 12, 'E': 15, 'D': 25, 'C': 50, 'B': 95, 'A': 210});
+      final valores = RankExamValues.experienciaMinimaNoRank.values.toList();
+      for (var i = 1; i < valores.length; i++) {
+        expect(valores[i], greaterThan(valores[i - 1])); // crescente
+      }
+    });
+
+    test('treino conta 1 ponto (no máximo um por dia); missão não conta',
+        () async {
+      await programar([1, 3, 5]);
+      await usuarioNoNivel(1, treinos: 0);
+      await treinoNoDia(DateTime(2026, 2, 1));
+      await treinoNoDia(DateTime(2026, 2, 1)); // 2º no mesmo dia: ignorado
+      await treinoNoDia(DateTime(2025, 12, 31)); // antes de entrar no rank
+      await missoesCumpridas(10);
+      expect((await status()).experiencia, 1);
+    });
+
+    test('atividade extra: 0,5 ponto, só 30+ min, no máximo 4 por semana',
+        () async {
+      await programar([1, 3, 5]);
+      await usuarioNoNivel(1, treinos: 0);
+      // Semana de 02/02 a 08/02: 5 atividades de 30+ min (4 contam) + 1 curta.
+      for (var d = 2; d <= 6; d++) {
+        await atividade(SportType.ciclismo, DateTime(2026, 2, d));
+      }
+      await atividade(SportType.skate, DateTime(2026, 2, 7), min: 29);
+      // Semana seguinte: 1 atividade.
+      await atividade(SportType.futebol, DateTime(2026, 2, 9));
+      expect((await status()).experiencia, 2.5); // (4 + 1) × 0,5
+    });
+
+    test('editar ou excluir o registro ajusta a experiência', () async {
+      await programar([1, 3, 5]);
+      await usuarioNoNivel(1, treinos: 0);
+      for (var d = 2; d <= 6; d++) {
+        await atividade(SportType.ciclismo, DateTime(2026, 2, d));
+      }
+      expect((await status()).experiencia, 2); // 4 × 0,5
+      await (db.delete(db.sportActivities)..where((a) => a.id.equals(1))).go();
+      expect((await status()).experiencia, 2); // o 5º entra no limite
+      await (db.delete(db.sportActivities)..where((a) => a.id.equals(2))).go();
+      expect((await status()).experiencia, 1.5);
+      await (db.update(db.sportActivities)..where((a) => a.id.equals(3)))
+          .write(const SportActivitiesCompanion(duracaoMinutos: Value(10)));
+      expect((await status()).experiencia, 1);
     });
 
     test('tabela de exames: prazo, % de treinos, % de missão e extras', () {
@@ -369,18 +421,27 @@ void main() {
       expect(await repo.sincronizar(), isEmpty);
     });
 
-    test('o próximo exame (D) exige nível 25 E 3 meses no rank E', () async {
+    test('o próximo exame (D) exige nível 25 E 15 de experiência no rank E',
+        () async {
       await cumprirTudo();
       agora = inicio.add(const Duration(days: 30));
       await repo.sincronizar();
       await repo.confirmarRankUp('E');
       final entrouNoE = agora;
 
+      // O excedente não passa: os treinos do exame (e do F) não contam no E.
+      expect((await status()).experiencia, 0);
       expect(await repo.sincronizar(), isEmpty); // nível 10 < 25
-      await usuarioNoNivel(25);
-      expect(await repo.sincronizar(), isEmpty); // falta o tempo no E
+      await usuarioNoNivel(25, treinos: 0);
+      expect(await repo.sincronizar(), isEmpty); // falta a experiência no E
 
-      agora = somarMeses(entrouNoE, 3);
+      for (var i = 0; i < 14; i++) {
+        await treinoNoDia(entrouNoE.add(Duration(days: 1 + i)));
+      }
+      agora = entrouNoE.add(const Duration(days: 20));
+      expect(await repo.sincronizar(), isEmpty); // 14 < 15
+
+      await treinoNoDia(entrouNoE.add(const Duration(days: 15)));
       final eventos = await repo.sincronizar();
       expect(eventos.single.rankAlvo, 'D');
       expect(eventos.single.tipo, RankExamEventType.liberado);

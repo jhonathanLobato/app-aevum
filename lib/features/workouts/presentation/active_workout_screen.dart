@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import '../../profile/presentation/profile_providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -143,11 +144,17 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
   ) async {
     final controllers = _controllersFor(exerciseId);
     final repeticoes = int.tryParse(controllers.repsController.text);
-    final carga =
+    final cargaDigitada =
         double.tryParse(controllers.cargaController.text.replaceAll(',', '.'));
-    if (repeticoes == null || repeticoes <= 0 || carga == null || carga <= 0) {
+    if (repeticoes == null ||
+        repeticoes <= 0 ||
+        cargaDigitada == null ||
+        cargaDigitada <= 0) {
       return;
     }
+    // A carga é digitada na unidade do usuário; o banco guarda em kg.
+    final units = ref.read(unitsProvider);
+    final carga = units.pesoParaBanco(cargaDigitada);
 
     final resultado = await ref.read(workoutSessionRepositoryProvider).logSet(
           sessionId: sessionId,
@@ -164,6 +171,7 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
         exerciseNome: exerciseNome,
         prs: resultado.prsBatidos,
         xpGanho: resultado.xpGanho?.xpGanho,
+        units: units,
       );
     }
 

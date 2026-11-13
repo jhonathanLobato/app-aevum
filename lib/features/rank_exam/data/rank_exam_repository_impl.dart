@@ -11,16 +11,6 @@ import '../domain/rank_exam.dart';
 import '../domain/rank_exam_repository.dart';
 import 'tables/rank_exam_table.dart';
 
-/// Soma [meses] a [d] em meses de calendário (limita o dia ao fim do mês).
-DateTime somarMeses(DateTime d, int meses) {
-  final total = d.year * 12 + (d.month - 1) + meses;
-  final ano = total ~/ 12;
-  final mes = total % 12 + 1;
-  final ultimoDia = DateTime(ano, mes + 1, 0).day;
-  return DateTime(
-      ano, mes, d.day > ultimoDia ? ultimoDia : d.day, d.hour, d.minute);
-}
-
 class DriftRankExamRepository implements RankExamRepository {
   DriftRankExamRepository(this._db, this._profile, {DateTime Function()? agora})
       : _agora = agora ?? DateTime.now;
@@ -50,6 +40,40 @@ class DriftRankExamRepository implements RankExamRepository {
           if (SportType.fromName(nome) != null) SportType.fromName(nome)!,
       ];
 
+  /// Experiência de Caçador acumulada no rank atual, calculada dos dados
+  /// reais desde [desde] (por isso editar/excluir registros ajusta os
+  /// pontos e subir de rank, que reinicia [desde], zera tudo): 1 ponto por
+  /// dia com treino de academia concluído + 0,5 por atividade extra de 30+
+  /// min, no máximo 4 por semana (segunda a domingo). Missão diária não conta.
+  Future<double> _experiencia(DateTime desde) async {
+    final sessoes = await (_db.select(_db.workoutSessions)
+          ..where((s) =>
+              s.status.equalsValue(WorkoutSessionStatus.concluido) &
+              s.data.isBiggerOrEqualValue(desde)))
+        .get();
+    final diasComTreino = {for (final s in sessoes) chaveDoDia(s.data)};
+
+    final atividades = await (_db.select(_db.sportActivities)
+          ..where((a) =>
+              a.data.isBiggerOrEqualValue(apenasData(desde)) &
+              a.duracaoMinutos
+                  .isBiggerOrEqualValue(RankExamValues.minutosMinimos)))
+        .get();
+    final porSemana = <DateTime, int>{};
+    for (final a in atividades) {
+      final semana = inicioDaSemana(a.data);
+      porSemana[semana] = (porSemana[semana] ?? 0) + 1;
+    }
+    final contadas = porSemana.values
+        .map((n) => n > RankExamValues.maxAtividadesPorSemana
+            ? RankExamValues.maxAtividadesPorSemana
+            : n)
+        .fold<int>(0, (a, b) => a + b);
+
+    return diasComTreino.length * RankExamValues.pontosPorTreino +
+        contadas * RankExamValues.pontosPorAtividade;
+  }
+
   /// Quando o jogador entrou no rank atual (grava hoje se não há registro).
   Future<DateTime> _rankDesde(User usuario) async {
     final desde = usuario.rankDesde;
@@ -74,7 +98,6 @@ class DriftRankExamRepository implements RankExamRepository {
       if (usuario == null) return null;
       final programados = (await _programacao()).length;
       final desde = usuario.rankDesde ?? _agora();
-      final meses = RankExamValues.mesesMinimosNoRank[usuario.rank] ?? 0;
       final alvo = proximoRank(usuario.rank);
       final exame = alvo == null ? null : await _exameEmAndamento();
 
@@ -97,9 +120,10 @@ class DriftRankExamRepository implements RankExamRepository {
         proximoRank: alvo,
         fase: fase,
         nivelMinimo: alvo == null ? 0 : nivelMinimoDoRank(alvo),
-        mesesMinimos: meses,
+        experienciaMinima:
+            RankExamValues.experienciaMinimaNoRank[usuario.rank] ?? 0,
+        experiencia: await _experiencia(desde),
         desde: desde,
-        liberaPorTempoEm: somarMeses(desde, meses),
         diasProgramadosPorSemana: programados,
         liberadoEm: fase == RankExamPhase.disponivel ? exame!.inicio : null,
         exame: estado,
@@ -301,11 +325,14 @@ class DriftRankExamRepository implements RankExamRepository {
         exame = null;
       }
 
-      // Libera: nível mínimo E tempo mínimo no rank atual.
+      // Libera: nível mínimo E experiência mínima no rank atual.
       if (exame == null) {
-        final meses = RankExamValues.mesesMinimosNoRank[usuario.rank] ?? 0;
-        final tempoOk = !agora.isBefore(somarMeses(desde, meses));
-        if (usuario.nivel < nivelMinimoDoRank(alvo) || !tempoOk) return eventos;
+        final minima =
+            RankExamValues.experienciaMinimaNoRank[usuario.rank] ?? 0;
+        final experienciaOk = await _experiencia(desde) >= minima;
+        if (usuario.nivel < nivelMinimoDoRank(alvo) || !experienciaOk) {
+          return eventos;
+        }
         final spec = RankExamValues.specs[alvo]!;
         await _db.into(_db.rankExams).insert(RankExamsCompanion.insert(
               rankAlvo: alvo,

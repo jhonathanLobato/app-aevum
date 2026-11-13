@@ -1,5 +1,6 @@
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:gym_system/features/profile/domain/units.dart';
 import 'package:gym_system/database/app_database.dart';
 import 'package:gym_system/features/activities/data/sport_activity_repository_impl.dart';
 import 'package:gym_system/features/activities/domain/sport_activity.dart';
@@ -323,7 +324,8 @@ void main() {
         ['id', 'template_id', 'exercise_id', 'ordem']);
   });
 
-  test('migration v5 -> v7: nível recalculado, rank mantido, rank_desde = hoje',
+  test(
+      'migration v5 -> v8: nível recalculado, rank mantido, rank_desde = hoje, ficha',
       () async {
     final antigo = AppDatabase.forTesting(
       NativeDatabase.memory(setup: (raw) {
@@ -347,6 +349,13 @@ void main() {
     expect(u.xp, 5000);
     expect(u.nivel, 10);
     expect(u.rank, 'E'); // o rank atual não cai
+    // v8: título vira "Despertado", unidades padrão e data de criação.
+    expect(u.titulo, 'Despertado');
+    expect(u.unidadePeso, WeightUnit.kg);
+    expect(u.unidadeComprimento, LengthUnit.cm);
+    expect(u.alturaCm, isNull);
+    expect(u.criadoEm, isNotNull);
+    expect(await antigo.select(antigo.bodyRecords).get(), isEmpty);
     // Quem já existe conta o tempo no rank a partir de hoje.
     final agora = DateTime.now();
     expect(u.rankDesde, isNotNull);

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../profile/presentation/profile_providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../design_system/system_back_button.dart';
@@ -66,14 +67,15 @@ class ExerciseHistoryScreen extends ConsumerWidget {
   }
 }
 
-class _SerieRow extends StatelessWidget {
+class _SerieRow extends ConsumerWidget {
   const _SerieRow({required this.serie, required this.anterior});
 
   final SetEntryRecord serie;
   final SetEntryRecord? anterior;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final units = ref.watch(unitsProvider);
     return Container(
       padding: const EdgeInsets.symmetric(
           horizontal: SystemSpacing.md, vertical: SystemSpacing.sm),
@@ -94,7 +96,7 @@ class _SerieRow extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '${serie.repeticoes} × ${serie.carga}kg',
+                  '${serie.repeticoes} × ${units.formatarPeso(serie.carga)}',
                   style: SystemTextStyles.displaySmall.copyWith(fontSize: 14),
                 ),
                 const SizedBox(height: 2),
@@ -106,7 +108,7 @@ class _SerieRow extends StatelessWidget {
             ),
           ),
           Text(
-            '${serie.volume.toStringAsFixed(0)}kg vol.',
+            '${units.formatarPeso(serie.volume, casas: 0)} vol.',
             style: SystemTextStyles.bodySmall,
           ),
         ],

@@ -363,7 +363,7 @@ void main() {
       // Perfil abre pelo avatar do cabeçalho da tela Sistema.
       await tester.tap(find.byTooltip('Perfil'));
       await tester.pumpAndSettle();
-      expect(find.text('IDENTIDADE DO JOGADOR'), findsOneWidget);
+      expect(find.text('PERFIL DO JOGADOR'), findsOneWidget);
       await tester.tap(find.byTooltip('Voltar'));
       await tester.pumpAndSettle();
 

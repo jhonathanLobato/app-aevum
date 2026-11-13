@@ -4,6 +4,7 @@ import '../../../design_system/system_colors.dart';
 import '../../../design_system/system_feedback_dialog.dart';
 import '../../../design_system/system_spacing.dart';
 import '../../../design_system/system_text_styles.dart';
+import '../../profile/domain/units.dart';
 import '../../progression/domain/personal_record.dart';
 
 /// PR é evento importante (Fase 9, seção 13/16): feedback médio, com ícone,
@@ -16,6 +17,7 @@ Future<void> showPrDetectedDialog(
   required String exerciseNome,
   required List<PersonalRecordBreak> prs,
   int? xpGanho,
+  Units units = const Units(),
 }) {
   return showDialog(
     context: context,
@@ -35,7 +37,7 @@ Future<void> showPrDetectedDialog(
           const SizedBox(height: SystemSpacing.md),
           for (final pr in prs) ...[
             Text(
-              '${_labelTipo(pr.tipo)}: ${_formatarValor(pr.tipo, pr.valorNovo)}',
+              '${_labelTipo(pr.tipo)}: ${_formatarValor(pr.tipo, pr.valorNovo, units)}',
               textAlign: TextAlign.center,
               style: const TextStyle(
                 fontFamily: SystemFonts.display,
@@ -48,7 +50,7 @@ Future<void> showPrDetectedDialog(
               Padding(
                 padding: const EdgeInsets.only(top: 2),
                 child: Text(
-                  'Recorde anterior: ${_formatarValor(pr.tipo, pr.valorAnterior!)}',
+                  'Recorde anterior: ${_formatarValor(pr.tipo, pr.valorAnterior!, units)}',
                   textAlign: TextAlign.center,
                   style: SystemTextStyles.bodySmall,
                 ),
@@ -85,13 +87,13 @@ String _labelTipo(PersonalRecordType tipo) {
   }
 }
 
-String _formatarValor(PersonalRecordType tipo, double valor) {
+String _formatarValor(PersonalRecordType tipo, double valor, Units units) {
   switch (tipo) {
     case PersonalRecordType.carga:
-      return '${valor.toStringAsFixed(1)} KG';
+      return units.formatarPeso(valor);
     case PersonalRecordType.repeticoes:
       return valor.toStringAsFixed(0);
     case PersonalRecordType.volume:
-      return '${valor.toStringAsFixed(0)} KG';
+      return units.formatarPeso(valor, casas: 0);
   }
 }

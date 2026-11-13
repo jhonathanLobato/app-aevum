@@ -9,6 +9,7 @@ import '../../../../design_system/system_spacing.dart';
 import '../../../../design_system/system_text_styles.dart';
 import '../../domain/rank_exam.dart';
 import '../rank_exam_providers.dart';
+import 'hunter_experience_bar.dart';
 
 String formatarDiaMes(DateTime d) =>
     '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}';
@@ -60,6 +61,10 @@ class RankSummaryCard extends ConsumerWidget {
                     Text(linha2,
                         style: SystemTextStyles.body
                             .copyWith(color: SystemPalette.mutedForeground)),
+                  if (status.proximoRank != null) ...[
+                    const SizedBox(height: SystemSpacing.sm),
+                    HunterExperienceBar(status: status),
+                  ],
                 ],
               ),
             ),
@@ -91,8 +96,8 @@ class RankSummaryCard extends ConsumerWidget {
         final partes = <String>[
           if (s.niveisFaltando > 0)
             'faltam ${s.niveisFaltando} ${s.niveisFaltando == 1 ? 'nível' : 'níveis'} (nível ${s.nivelMinimo})',
-          if (s.diasParaLiberarPorTempo(DateTime.now()) > 0)
-            'faltam ${s.diasParaLiberarPorTempo(DateTime.now())} dias no rank',
+          if (s.experienciaFaltando > 0)
+            'faltam ${formatarExperiencia(s.experienciaFaltando)} pontos de experiência',
         ];
         return (
           'PRÓXIMO EXAME (${s.proximoRank}) BLOQUEADO',

@@ -8,7 +8,7 @@ import 'package:gym_system/features/profile/domain/player_class.dart';
 import 'package:gym_system/features/profile/presentation/profile_screen.dart';
 
 void main() {
-  testWidgets('edita nome, classe, título e tema, e salva', (tester) async {
+  testWidgets('edita nome, avatar e classe, e salva a ficha', (tester) async {
     final db = AppDatabase.forTesting(NativeDatabase.memory());
     addTearDown(db.close);
 
@@ -25,26 +25,21 @@ void main() {
             of: find.byKey(const Key('profile_nome_field')),
             matching: find.byType(TextField)),
         'Ana');
-    await tester.enterText(
-        find.descendant(
-            of: find.byKey(const Key('profile_titulo_field')),
-            matching: find.byType(TextField)),
-        'Campeã');
     await tester.ensureVisible(find.text('GUARDIÃO'));
     await tester.tap(find.text('GUARDIÃO'));
     await tester.pumpAndSettle();
     await tester.ensureVisible(find.byIcon(Icons.star));
     await tester.tap(find.byIcon(Icons.star));
     await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('SALVAR'));
-    await tester.tap(find.text('SALVAR'));
+    await tester.ensureVisible(find.byKey(const Key('profile_salvar')));
+    await tester.tap(find.byKey(const Key('profile_salvar')));
     await tester.pumpAndSettle();
 
-    expect(find.text('Perfil salvo.'), findsOneWidget);
+    expect(find.text('Ficha salva.'), findsOneWidget);
 
     final user = await db.select(db.users).getSingle();
     expect(user.nome, 'Ana');
-    expect(user.titulo, 'Campeã');
+    expect(user.titulo, 'Despertado');
     expect(user.avatar, 'star');
     expect(user.classe, PlayerClass.guardiao);
 

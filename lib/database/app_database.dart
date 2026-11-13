@@ -6,6 +6,7 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
 import '../features/achievements/data/tables/achievement_table.dart';
+import '../features/body/data/tables/body_record_table.dart';
 import '../features/daily/data/tables/daily_tables.dart';
 import '../features/daily/domain/daily_values.dart';
 import '../features/rank_exam/data/tables/rank_exam_table.dart';
@@ -20,6 +21,7 @@ import '../features/profile/data/tables/user_table.dart';
 import '../features/profile/domain/app_theme.dart';
 import '../features/profile/domain/level_curve.dart';
 import '../features/profile/domain/player_class.dart';
+import '../features/profile/domain/units.dart';
 import '../features/progression/data/tables/personal_record_table.dart';
 import '../features/progression/domain/personal_record.dart';
 import '../features/workouts/data/tables/finished_exercise_table.dart';
@@ -49,6 +51,7 @@ part 'app_database.g.dart';
   DailyEntries,
   DailyDays,
   RankExams,
+  BodyRecords,
 ])
 class AppDatabase extends _$AppDatabase {
   AppDatabase()
@@ -61,7 +64,7 @@ class AppDatabase extends _$AppDatabase {
   final bool _semearBiblioteca;
 
   @override
-  int get schemaVersion => 7;
+  int get schemaVersion => 8;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -111,6 +114,22 @@ class AppDatabase extends _$AppDatabase {
                   "UPDATE rank_exams SET status = 'disponivel' WHERE status = 'aguardando'");
             }
           }
+          if (from < 8) {
+            // v8: Ficha do Caçador (corpo, unidades, título) e registros
+            // corporais. O título atual vira "Despertado" (os demais são
+            // liberados pelo que o jogador já conquistou).
+            await m.createTable(bodyRecords);
+            if (await _tabelaExiste('users')) {
+              await m.addColumn(users, users.alturaCm);
+              await m.addColumn(users, users.nascimento);
+              await m.addColumn(users, users.sexo);
+              await m.addColumn(users, users.unidadePeso);
+              await m.addColumn(users, users.unidadeComprimento);
+              await m.addColumn(users, users.criadoEm);
+              await customStatement(
+                  "UPDATE users SET titulo = 'Despertado', criado_em = ${DateTime.now().millisecondsSinceEpoch ~/ 1000}");
+            }
+          }
         },
         beforeOpen: (details) async {
           await customStatement('PRAGMA foreign_keys = ON');
@@ -132,11 +151,14 @@ extension on AppDatabase {
 
   Future<void> _recalcularNivelDosUsuarios() async {
     if (!await _tabelaExiste('users')) return;
-    for (final u in await select(users).get()) {
-      final nivel = const LevelCurve().calcularNivel(u.xp).nivel;
-      if (nivel != u.nivel) {
-        await (update(users)..where((x) => x.id.equals(u.id)))
-            .write(UsersCompanion(nivel: Value(nivel)));
+    // SQL direto: nesta etapa a tabela ainda não tem as colunas das versões
+    // seguintes, que o mapeamento tipado de `users` exigiria.
+    for (final u
+        in await customSelect('SELECT id, xp, nivel FROM users').get()) {
+      final nivel = const LevelCurve().calcularNivel(u.read<int>('xp')).nivel;
+      if (nivel != u.read<int>('nivel')) {
+        await customStatement(
+            'UPDATE users SET nivel = $nivel WHERE id = ${u.read<int>('id')}');
       }
     }
   }

@@ -1,9 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:gym_system/features/profile/domain/units.dart';
+import 'package:gym_system/features/profile/presentation/profile_providers.dart';
 import 'package:gym_system/features/workouts/domain/workout_session.dart';
 import 'package:gym_system/features/workouts/presentation/widgets/workout_sets_panel.dart';
 
-Widget _wrap(Widget child) => MaterialApp(home: Scaffold(body: child));
+Widget _wrap(Widget child, {Units units = const Units()}) => ProviderScope(
+      overrides: [unitsProvider.overrideWithValue(units)],
+      child: MaterialApp(home: Scaffold(body: child)),
+    );
 
 SetEntryRecord _serie(int id,
     {int serie = 1, double carga = 30, int reps = 10}) {
@@ -25,6 +31,17 @@ void main() {
       await tester.pumpWidget(_wrap(const WorkoutSetsPanel(series: [])));
       expect(find.text('NENHUMA SÉRIE REGISTRADA NESTE EXERCÍCIO'),
           findsOneWidget);
+    });
+
+    testWidgets('em lb, a carga guardada em kg é exibida convertida',
+        (tester) async {
+      await tester.pumpWidget(_wrap(
+        WorkoutSetsPanel(series: [_serie(1, carga: 45.359237)]),
+        units: const Units(peso: WeightUnit.lb),
+      ));
+      await tester.pumpAndSettle();
+
+      expect(find.text('100.0 LB × 10'), findsOneWidget);
     });
 
     testWidgets('uma nova série aparece registrada com os valores reais',

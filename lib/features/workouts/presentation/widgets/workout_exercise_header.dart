@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../profile/presentation/profile_providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../design_system/system_colors.dart';
@@ -136,7 +137,7 @@ class WorkoutExerciseHeader extends ConsumerWidget {
             const SizedBox(height: SystemSpacing.md),
             SystemStatBox(
               label: 'PR ATUAL',
-              value: '${prAtual.toStringAsFixed(1)} KG',
+              value: ref.watch(unitsProvider).formatarPeso(prAtual),
               icon: Icons.emoji_events_outlined,
               iconColor: SystemPalette.gold,
             ),

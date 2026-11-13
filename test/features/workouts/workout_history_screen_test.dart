@@ -117,8 +117,8 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('10 × 30.0kg'), findsOneWidget);
-    expect(find.text('10 × 32.0kg'), findsOneWidget);
+    expect(find.text('10 × 30.0 KG'), findsOneWidget);
+    expect(find.text('10 × 32.0 KG'), findsOneWidget);
     expect(find.byIcon(Icons.trending_up), findsOneWidget);
 
     await tester.pumpWidget(const SizedBox());

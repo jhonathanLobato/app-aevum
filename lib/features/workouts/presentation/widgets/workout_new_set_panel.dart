@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../design_system/system_button.dart';
 import '../../../../design_system/system_colors.dart';
 import '../../../../design_system/system_panel.dart';
 import '../../../../design_system/system_spacing.dart';
 import '../../../../design_system/system_text_field.dart';
+import '../../../profile/presentation/profile_providers.dart';
 
 /// "NOVA SÉRIE" — carga, repetições e os dois botões de ação do exercício
 /// atual, direto de `treinos.tsx`.
@@ -111,20 +113,22 @@ class _WorkoutNewSetPanelState extends State<WorkoutNewSetPanel> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
-                child: SystemTextField(
-                  key: const Key('workout_carga_field'),
-                  label: 'CARGA',
-                  controller: widget.cargaController,
-                  enabled: widget.enabled,
-                  suffix: 'KG',
-                  icon: const Icon(Icons.fitness_center, size: 18),
-                  keyboardType:
-                      const TextInputType.numberWithOptions(decimal: true),
-                  textInputAction: TextInputAction.next,
-                  status: _statusFor(cargaTexto, _cargaValida),
-                  hint: cargaTexto.isNotEmpty && !_cargaValida
-                      ? 'Valor inválido'
-                      : null,
+                child: Consumer(
+                  builder: (context, ref, _) => SystemTextField(
+                    key: const Key('workout_carga_field'),
+                    label: 'CARGA',
+                    controller: widget.cargaController,
+                    enabled: widget.enabled,
+                    suffix: ref.watch(unitsProvider).pesoSufixo,
+                    icon: const Icon(Icons.fitness_center, size: 18),
+                    keyboardType:
+                        const TextInputType.numberWithOptions(decimal: true),
+                    textInputAction: TextInputAction.next,
+                    status: _statusFor(cargaTexto, _cargaValida),
+                    hint: cargaTexto.isNotEmpty && !_cargaValida
+                        ? 'Valor inválido'
+                        : null,
+                  ),
                 ),
               ),
               const SizedBox(width: SystemSpacing.sm),

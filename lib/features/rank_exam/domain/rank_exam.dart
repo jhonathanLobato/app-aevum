@@ -38,16 +38,27 @@ class RankExamValues {
   /// seguinte ele começa sozinho.
   static const janelaParaIniciarDias = 7;
 
-  /// Meses mínimos no rank ATUAL antes de o próximo exame poder ser liberado
-  /// (vale junto com o nível mínimo do próximo rank).
-  static const mesesMinimosNoRank = <String, int>{
-    'F': 2,
-    'E': 3,
-    'D': 5,
-    'C': 7,
-    'B': 9,
-    'A': 10,
+  /// Experiência de Caçador mínima no rank ATUAL antes de o próximo exame
+  /// poder ser liberado (vale junto com o nível mínimo do próximo rank).
+  /// Calibrada por simulação (`tool/rank_simulation.py`).
+  static const experienciaMinimaNoRank = <String, int>{
+    'F': 12,
+    'E': 15,
+    'D': 25,
+    'C': 50,
+    'B': 95,
+    'A': 210,
   };
+
+  /// Pontos de experiência por treino de academia concluído (no máximo um
+  /// por dia).
+  static const pontosPorTreino = 1.0;
+
+  /// Pontos por atividade extra de 30+ min...
+  static const pontosPorAtividade = 0.5;
+
+  /// ...contando no máximo esta quantidade por semana (segunda a domingo).
+  static const maxAtividadesPorSemana = 4;
 
   /// Duração mínima (min) de um registro de atividade para contar no exame.
   static const minutosMinimos = 30;
@@ -233,9 +244,9 @@ class RankStatus {
     required this.proximoRank,
     required this.fase,
     required this.nivelMinimo,
-    required this.mesesMinimos,
+    required this.experienciaMinima,
+    required this.experiencia,
     required this.desde,
-    required this.liberaPorTempoEm,
     required this.diasProgramadosPorSemana,
     this.liberadoEm,
     this.exame,
@@ -246,11 +257,15 @@ class RankStatus {
   final String? proximoRank;
   final RankExamPhase fase;
 
-  /// Nível mínimo e tempo mínimo no rank atual para liberar o próximo exame.
+  /// Nível mínimo e experiência mínima para liberar o próximo exame.
   final int nivelMinimo;
-  final int mesesMinimos;
+  final int experienciaMinima;
+
+  /// Experiência de Caçador acumulada no rank atual (zera ao subir de rank).
+  final double experiencia;
+
+  /// Quando o jogador entrou no rank atual.
   final DateTime desde;
-  final DateTime liberaPorTempoEm;
 
   final int diasProgramadosPorSemana;
 
@@ -265,13 +280,14 @@ class RankStatus {
   RankExamSpec? get spec =>
       proximoRank == null ? null : RankExamValues.specs[proximoRank];
 
-  /// Dias que faltam para completar o tempo mínimo no rank (0 se já passou).
-  int diasParaLiberarPorTempo(DateTime agora) {
-    final dias = apenasDataLocal(liberaPorTempoEm)
-        .difference(apenasDataLocal(agora))
-        .inDays;
-    return dias < 0 ? 0 : dias;
-  }
+  /// Experiência que falta para o mínimo do rank (0 se já atingiu).
+  double get experienciaFaltando =>
+      experiencia >= experienciaMinima ? 0 : experienciaMinima - experiencia;
+
+  /// Progresso (0–1) rumo à experiência mínima.
+  double get progressoExperiencia => experienciaMinima == 0
+      ? 1
+      : (experiencia / experienciaMinima).clamp(0.0, 1.0);
 
   /// Dia em que o exame disponível começa sozinho.
   DateTime? get inicioAutomaticoEm => liberadoEm == null
@@ -284,6 +300,14 @@ class RankStatus {
 }
 
 DateTime apenasDataLocal(DateTime d) => DateTime(d.year, d.month, d.day);
+
+/// Pontos de experiência como texto: "12" ou "12,5".
+String formatarExperiencia(double pontos) {
+  final inteiro = pontos == pontos.roundToDouble();
+  return inteiro
+      ? pontos.round().toString()
+      : pontos.toStringAsFixed(1).replaceAll('.', ',');
+}
 
 enum IniciarExameResultado {
   iniciado,

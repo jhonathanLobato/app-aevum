@@ -1,5 +1,6 @@
 import 'app_theme.dart';
 import 'player_class.dart';
+import 'units.dart';
 import 'user_profile.dart';
 
 abstract class ProfileRepository {
@@ -26,6 +27,25 @@ abstract class ProfileRepository {
 
   /// Atualiza os campos de personalização informados; campos nulos mantêm
   /// o valor atual. Cria o perfil se ele ainda não existir.
+  /// Data do Despertar: criação do usuário ou o primeiro registro (treino,
+  /// atividade ou medida corporal), o que for mais antigo.
+  Stream<DateTime?> watchDespertar();
+
+  /// Grava a Ficha do Caçador inteira de uma vez (tela de Perfil). Ao
+  /// contrário de [updateProfile], valores nulos de altura/nascimento/sexo
+  /// LIMPAM o campo.
+  Future<void> salvarFicha({
+    required String nome,
+    required String? avatar,
+    required PlayerClass classe,
+    required String titulo,
+    required AppTheme tema,
+    required Units unidades,
+    double? alturaCm,
+    DateTime? nascimento,
+    Sexo? sexo,
+  });
+
   Future<void> updateProfile({
     String? nome,
     String? avatar,

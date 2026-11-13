@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../profile/presentation/profile_providers.dart';
 
 import '../../../../design_system/system_colors.dart';
 import '../../../../design_system/system_empty_state.dart';
@@ -72,12 +74,14 @@ class _WorkoutSetsPanelState extends State<WorkoutSetsPanel> {
                   if (i > 0) const SizedBox(height: SystemSpacing.xs),
                   SystemEntrance(
                     key: ValueKey('set-${series[i].id}'),
-                    child: _SetRow(
-                      numero: series[i].serie,
-                      texto:
-                          '${series[i].carga.toStringAsFixed(1)} KG × ${series[i].repeticoes}',
-                      registrada: true,
-                      destacada: series[i].id == _destacarSetId,
+                    child: Consumer(
+                      builder: (context, ref, _) => _SetRow(
+                        numero: series[i].serie,
+                        texto:
+                            '${ref.watch(unitsProvider).formatarPeso(series[i].carga)} × ${series[i].repeticoes}',
+                        registrada: true,
+                        destacada: series[i].id == _destacarSetId,
+                      ),
                     ),
                   ),
                 ],

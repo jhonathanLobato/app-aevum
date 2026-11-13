@@ -1,5 +1,6 @@
 import 'app_theme.dart';
 import 'player_class.dart';
+import 'units.dart';
 
 class UserProfile {
   const UserProfile({
@@ -12,6 +13,10 @@ class UserProfile {
     required this.xp,
     required this.nivel,
     required this.rank,
+    this.alturaCm,
+    this.nascimento,
+    this.sexo,
+    this.unidades = const Units(),
   });
 
   final int id;
@@ -23,6 +28,12 @@ class UserProfile {
   final int xp;
   final int nivel;
   final String rank;
+
+  /// Corpo (opcionais; altura em cm) e unidades de exibição.
+  final double? alturaCm;
+  final DateTime? nascimento;
+  final Sexo? sexo;
+  final Units unidades;
 }
 
 class XpGainResult {

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../profile/presentation/profile_providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -193,9 +194,13 @@ class _GlobalStatsGrid extends StatelessWidget {
             ),
             const SizedBox(width: SystemSpacing.sm),
             Expanded(
-              child: SystemStatBox(
-                label: 'VOLUME',
-                value: '${stats.volumeTotal.toStringAsFixed(0)} KG',
+              child: Consumer(
+                builder: (context, ref, _) => SystemStatBox(
+                  label: 'VOLUME',
+                  value: ref
+                      .watch(unitsProvider)
+                      .formatarPeso(stats.volumeTotal, casas: 0),
+                ),
               ),
             ),
           ],

@@ -15,6 +15,8 @@ import '../features/activities/presentation/sport_type_screen.dart';
 import '../features/exercises/presentation/exercise_history_screen.dart';
 import '../features/exercises/presentation/exercises_screen.dart';
 import '../features/missions/presentation/missions_screen.dart';
+import '../features/body/presentation/body_record_form_screen.dart';
+import '../features/body/presentation/body_screen.dart';
 import '../features/profile/presentation/profile_screen.dart';
 import '../features/statistics/presentation/statistics_screen.dart';
 import '../features/system_home/presentation/system_screen.dart';
@@ -194,6 +196,23 @@ final appRouter = GoRouter(
       parentNavigatorKey: rootNavigatorKey,
       path: '/profile',
       builder: (context, state) => const ProfileScreen(),
+    ),
+    GoRoute(
+      parentNavigatorKey: rootNavigatorKey,
+      path: '/body',
+      builder: (context, state) => const BodyScreen(),
+    ),
+    GoRoute(
+      parentNavigatorKey: rootNavigatorKey,
+      path: '/body/new',
+      builder: (context, state) => const BodyRecordFormScreen(),
+    ),
+    GoRoute(
+      parentNavigatorKey: rootNavigatorKey,
+      path: '/body/:id/edit',
+      builder: (context, state) => BodyRecordFormScreen(
+        recordId: int.parse(state.pathParameters['id']!),
+      ),
     ),
   ],
 );
