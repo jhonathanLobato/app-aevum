@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../design_system/system_navigation_bar.dart';
 import '../features/daily/presentation/daily_providers.dart';
 import '../features/missions/presentation/mission_providers.dart';
+import '../features/achievements/presentation/achievement_notifier.dart';
 import '../features/rank_exam/presentation/rank_exam_providers.dart';
 
 /// Casca das 5 áreas principais (Sistema, Treinos, Atividades, Missões e
@@ -46,6 +47,7 @@ class _ScaffoldWithNavBarState extends ConsumerState<ScaffoldWithNavBar> {
       await ref.read(dailyRepositoryProvider).processarVirada();
       await ref.read(missionRepositoryProvider).ensureRecurringMissions();
       if (mounted) await sincronizarExame(context, ref);
+      if (mounted) await conferirConquistas(context, ref);
     } catch (_) {
       // Rotina de abertura nunca deve impedir o uso do app.
     }

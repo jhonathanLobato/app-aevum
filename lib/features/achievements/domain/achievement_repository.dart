@@ -14,6 +14,11 @@ abstract class AchievementRepository {
   /// "Superação". Retorna as desbloqueadas agora.
   Future<List<Achievement>> verificarPorNovoRecorde();
 
+  /// Reavalia TODAS as conquistas a partir dos dados reais e concede o XP das
+  /// que acabaram de desbloquear. Chamado após registrar atividade, registro
+  /// corporal, missão diária e na virada do dia.
+  Future<List<Achievement>> verificarTudo({bool aoBaterRecorde = false});
+
   /// Reavalia as conquistas de rank (chamado quando o rank muda, ou seja,
   /// ao passar num exame de rank).
   Future<List<Achievement>> verificarRank();

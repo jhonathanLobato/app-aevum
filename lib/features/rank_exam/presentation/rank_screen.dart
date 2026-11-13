@@ -7,6 +7,7 @@ import '../../../design_system/system_back_button.dart';
 import '../../../design_system/system_button.dart';
 import '../../../design_system/system_colors.dart';
 import '../../../design_system/system_empty_state.dart';
+import '../../../design_system/system_notice_dialog.dart';
 import '../../../design_system/system_panel.dart';
 import '../../../design_system/system_scaffold.dart';
 import '../../../design_system/system_spacing.dart';
@@ -166,8 +167,20 @@ class _BotaoExame extends ConsumerWidget {
     final resultado =
         await ref.read(rankExamRepositoryProvider).iniciarExame(escolha);
     if (!context.mounted) return;
+    if (resultado == IniciarExameResultado.iniciado) {
+      await showSystemNoticeDialog(
+        context,
+        titulo: 'Exame iniciado',
+        icone: Icons.play_circle_outline,
+        cor: SystemPalette.gold,
+        mensagem:
+            '[SISTEMA] O exame para o rank ${spec.rankAlvo} começou. Cumpra treinos, missões diárias e atividades extras dentro do prazo.',
+        destaque: '${spec.prazoDias} DIAS',
+      );
+      return;
+    }
     final mensagem = switch (resultado) {
-      IniciarExameResultado.iniciado => 'Exame iniciado. Boa sorte!',
+      IniciarExameResultado.iniciado => '',
       IniciarExameResultado.precisaProgramar =>
         'Programe pelo menos ${RankExamValues.minDiasProgramados} dias de treino por semana em Treinos › Minha semana.',
       IniciarExameResultado.modalidadesInvalidas =>

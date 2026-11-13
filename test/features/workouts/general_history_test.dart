@@ -178,8 +178,8 @@ void main() {
     expect(find.text('3 REGISTROS'), findsOneWidget);
     expect(find.text('5,2 KM · 31 MIN'), findsOneWidget);
     expect(find.text('5:58 /KM'), findsOneWidget);
-    expect(find.text('60 MIN · 8 ROUNDS'), findsOneWidget);
-    expect(find.text('90 MIN'), findsOneWidget);
+    expect(find.text('1H · 8 ROUNDS'), findsOneWidget);
+    expect(find.text('1H 30MIN'), findsOneWidget);
     expect(find.textContaining('null'), findsNothing);
     await _finish(tester, db);
   });

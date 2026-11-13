@@ -9,6 +9,7 @@ import '../../../design_system/system_scaffold.dart';
 import '../../../design_system/system_spacing.dart';
 import '../../../design_system/system_text_field.dart';
 import '../../../design_system/system_text_styles.dart';
+import '../../achievements/presentation/achievement_notifier.dart';
 import '../../rank_exam/presentation/rank_exam_providers.dart';
 import '../domain/sport_activity.dart';
 import 'activity_providers.dart';
@@ -35,6 +36,7 @@ class SportActivityFormScreen extends ConsumerStatefulWidget {
 
 class _SportActivityFormScreenState
     extends ConsumerState<SportActivityFormScreen> {
+  final _horasController = TextEditingController();
   final _duracaoController = TextEditingController();
   final _distanciaController = TextEditingController();
   final _roundsController = TextEditingController();
@@ -59,6 +61,7 @@ class _SportActivityFormScreenState
 
   @override
   void dispose() {
+    _horasController.dispose();
     _duracaoController.dispose();
     _distanciaController.dispose();
     _roundsController.dispose();
@@ -73,7 +76,10 @@ class _SportActivityFormScreenState
     if (atividade == null) return;
     setState(() {
       _data = atividade.data;
-      _duracaoController.text = '${atividade.duracaoMinutos}';
+      final horas = atividade.duracaoMinutos ~/ 60;
+      final minutos = atividade.duracaoMinutos % 60;
+      _horasController.text = horas > 0 ? '$horas' : '';
+      _duracaoController.text = horas > 0 && minutos == 0 ? '' : '$minutos';
       _distanciaController.text = atividade.distanciaKm == null
           ? ''
           : formatarNumero(atividade.distanciaKm!);
@@ -83,7 +89,19 @@ class _SportActivityFormScreenState
     });
   }
 
-  int? get _duracao => int.tryParse(_duracaoController.text.trim());
+  /// Horas + minutos digitados, em minutos. Campo vazio vale 0; `null` se
+  /// algum dos dois não for um número válido.
+  int? get _duracao {
+    int? lerCampo(TextEditingController c) {
+      final t = c.text.trim();
+      return t.isEmpty ? 0 : int.tryParse(t);
+    }
+
+    final h = lerCampo(_horasController);
+    final m = lerCampo(_duracaoController);
+    if (h == null || m == null || h < 0 || m < 0) return null;
+    return h * 60 + m;
+  }
 
   /// `null` com campo vazio (opcional); `NaN` quando o texto não é número.
   double? get _distancia {
@@ -100,7 +118,7 @@ class _SportActivityFormScreenState
 
   String? get _erroDuracao {
     final d = _duracao;
-    return (d == null || d <= 0) ? 'Informe a duração em minutos' : null;
+    return (d == null || d <= 0) ? 'Informe a duração' : null;
   }
 
   String? get _erroDistancia {
@@ -142,6 +160,7 @@ class _SportActivityFormScreenState
     }
     // Atividades contam para o exame de rank.
     if (mounted) await sincronizarExame(context, ref);
+    if (mounted) await conferirConquistas(context, ref);
     if (mounted) Navigator.of(context).maybePop();
   }
 
@@ -180,16 +199,36 @@ class _SportActivityFormScreenState
           children: [
             _DateField(data: _data, onTap: _escolherData),
             const SizedBox(height: SystemSpacing.md),
-            SystemTextField(
-              key: const Key('atividade_duracao_field'),
-              label: 'Duração',
-              suffix: 'MIN',
-              controller: _duracaoController,
-              keyboardType: TextInputType.number,
-              textInputAction: TextInputAction.next,
-              status: status(_erroDuracao),
-              hint: erro(_erroDuracao),
-              onChanged: (_) => setState(() {}),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: SystemTextField(
+                    key: const Key('atividade_horas_field'),
+                    label: 'Duração',
+                    suffix: 'H',
+                    controller: _horasController,
+                    keyboardType: TextInputType.number,
+                    textInputAction: TextInputAction.next,
+                    status: status(_erroDuracao),
+                    onChanged: (_) => setState(() {}),
+                  ),
+                ),
+                const SizedBox(width: SystemSpacing.md),
+                Expanded(
+                  child: SystemTextField(
+                    key: const Key('atividade_duracao_field'),
+                    label: '',
+                    suffix: 'MIN',
+                    controller: _duracaoController,
+                    keyboardType: TextInputType.number,
+                    textInputAction: TextInputAction.next,
+                    status: status(_erroDuracao),
+                    hint: erro(_erroDuracao),
+                    onChanged: (_) => setState(() {}),
+                  ),
+                ),
+              ],
             ),
             if (widget.tipo.usaDistancia) ...[
               const SizedBox(height: SystemSpacing.md),

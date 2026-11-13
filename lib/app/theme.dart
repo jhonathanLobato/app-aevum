@@ -6,6 +6,19 @@ class SystemColors {
   static const accent = Color(0xFF3DA9FC);
 }
 
+const _snackBarTheme = SnackBarThemeData(
+  behavior: SnackBarBehavior.floating,
+  backgroundColor: SystemColors.panel,
+  contentTextStyle: TextStyle(
+    color: Color(0xFFE6EEF9),
+    fontWeight: FontWeight.w600,
+    letterSpacing: 0.6,
+  ),
+  shape: RoundedRectangleBorder(
+    side: BorderSide(color: SystemColors.accent),
+  ),
+);
+
 ThemeData buildSystemTheme({required bool escuro}) {
   if (!escuro) {
     return ThemeData(
@@ -14,6 +27,7 @@ ThemeData buildSystemTheme({required bool escuro}) {
         seedColor: SystemColors.accent,
         brightness: Brightness.light,
       ),
+      snackBarTheme: _snackBarTheme,
     );
   }
 
@@ -26,5 +40,6 @@ ThemeData buildSystemTheme({required bool escuro}) {
     useMaterial3: true,
     colorScheme: scheme,
     scaffoldBackgroundColor: SystemColors.background,
+    snackBarTheme: _snackBarTheme,
   );
 }

@@ -379,7 +379,7 @@ void main() {
       final db = _memoryDb();
       await _pumpHome(tester, db);
 
-      await tester.tap(find.byTooltip('Perfil'));
+      await tester.tap(find.byKey(const Key('home_avatar')));
       await tester.pumpAndSettle();
 
       expect(find.text('PERFIL_DESTINO'), findsOneWidget);

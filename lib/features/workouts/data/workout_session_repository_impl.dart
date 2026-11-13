@@ -162,16 +162,17 @@ class DriftWorkoutSessionRepository implements WorkoutSessionRepository {
         );
       }
 
-      final conquistasDesbloqueadas = prsBatidos.isEmpty
-          ? <Achievement>[]
-          : await _achievementRepository.verificarPorNovoRecorde();
-
       final xpTotal = (prsBatidos.isEmpty
               ? 0
               : XpValues.novoRecordePessoal * prsBatidos.length) +
           (desafioConcluido?.recompensaXp ?? 0);
       final xpGanho =
           xpTotal == 0 ? null : await _profileRepository.addXp(xpTotal);
+
+      // Depois do XP do PR: o XP das conquistas não mexe no LEVEL UP dele.
+      final conquistasDesbloqueadas = prsBatidos.isEmpty
+          ? <Achievement>[]
+          : await _achievementRepository.verificarPorNovoRecorde();
 
       return SetLogResult(
         setEntryId: setEntryId,
@@ -216,11 +217,12 @@ class DriftWorkoutSessionRepository implements WorkoutSessionRepository {
       final xpMissoes =
           missoesConcluidas.fold<int>(0, (soma, m) => soma + m.recompensaXp);
 
-      final conquistasDesbloqueadas =
-          await _achievementRepository.verificarPorTreinoConcluido();
-
       final xpGanho =
           await _profileRepository.addXp(XpValues.finalizarTreino + xpMissoes);
+
+      // Depois do XP do treino: o XP das conquistas não mexe no LEVEL UP dele.
+      final conquistasDesbloqueadas =
+          await _achievementRepository.verificarPorTreinoConcluido();
 
       return FinishResult(
         xpGanho: xpGanho,

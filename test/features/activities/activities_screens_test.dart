@@ -232,12 +232,12 @@ void main() {
     await tester.tap(find.text('SALVAR REGISTRO'));
     await _aguardar(tester);
 
-    expect(find.text('Informe a duração em minutos'), findsOneWidget);
+    expect(find.text('Informe a duração'), findsOneWidget);
     expect(await db.select(db.sportActivities).get(), isEmpty);
 
     await tester.enterText(_campo('atividade_duracao_field'), '0');
     await tester.pump();
-    expect(find.text('Informe a duração em minutos'), findsOneWidget);
+    expect(find.text('Informe a duração'), findsOneWidget);
 
     await _finish(tester, db);
   });

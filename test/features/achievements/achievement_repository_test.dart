@@ -161,7 +161,8 @@ void main() {
     await concluirSessao(DateTime.now().subtract(const Duration(days: 2)));
 
     final cedoDemais = await repo.verificarPorNovoRecorde();
-    expect(cedoDemais.map((a) => a.chave), ['evolucao']);
+    expect(cedoDemais.map((a) => a.chave), contains('evolucao'));
+    expect(cedoDemais.map((a) => a.chave), isNot(contains('superacao')));
 
     // Empurra a data do único treino concluído para 8 dias atrás.
     await (db.update(db.workoutSessions)

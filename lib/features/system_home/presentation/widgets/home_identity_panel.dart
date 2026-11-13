@@ -11,6 +11,7 @@ import '../../../../design_system/system_text_styles.dart';
 import '../../../../design_system/system_xp_bar.dart';
 import '../../../profile/domain/level_curve.dart';
 import '../../../profile/domain/player_class.dart';
+import '../../../profile/domain/titles.dart';
 import '../../../profile/domain/user_profile.dart';
 import '../../../profile/presentation/avatar_icons.dart';
 import '../../../profile/presentation/profile_providers.dart';
@@ -76,96 +77,97 @@ class _IdentityContent extends ConsumerWidget {
     final rank = user?.rank ?? 'F';
     final info = const LevelCurve().calcularNivel(user?.xp ?? 0);
 
-    return SystemPanel(
-      glow: true,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Tooltip(
-                message: 'Perfil',
-                child: GestureDetector(
-                  key: const Key('home_avatar'),
-                  behavior: HitTestBehavior.opaque,
-                  onTap: () => context.push('/profile'),
-                  child: Container(
-                    width: 48,
-                    height: 48,
-                    margin: const EdgeInsets.only(right: SystemSpacing.md),
-                    decoration: BoxDecoration(
-                      color: SystemPalette.primary.withValues(alpha: 0.08),
-                      border: Border.all(color: SystemPalette.primary),
-                    ),
-                    child: Icon(iconeDoAvatar(user?.avatar),
-                        color: SystemPalette.primary, size: 26),
+    // O painel inteiro abre o Perfil (como o da missão diária).
+    return GestureDetector(
+      key: const Key('home_avatar'),
+      behavior: HitTestBehavior.opaque,
+      onTap: () => context.push('/profile'),
+      child: SystemPanel(
+        glow: true,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
+                  margin: const EdgeInsets.only(right: SystemSpacing.md),
+                  decoration: BoxDecoration(
+                    color: SystemPalette.primary.withValues(alpha: 0.08),
+                    border: Border.all(color: SystemPalette.primary),
+                  ),
+                  child: Icon(iconeDoAvatar(user?.avatar),
+                      color: SystemPalette.primary, size: 26),
+                ),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        (user?.titulo ?? tituloPadrao).toUpperCase(),
+                        key: const Key('home_titulo'),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: SystemTextStyles.label
+                            .copyWith(color: SystemPalette.gold),
+                      ),
+                      const SizedBox(height: SystemSpacing.xs),
+                      Text(
+                        nome.toUpperCase(),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: SystemTextStyles.displayLarge,
+                      ),
+                      const SizedBox(height: SystemSpacing.xs),
+                      Text(
+                        '⚔ ${nomeDaClasse(classe).toUpperCase()}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontFamily: SystemFonts.body,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 2.5, // tracking-[0.18em] de 14px
+                          color: SystemPalette.violet,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              ),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                const SizedBox(width: SystemSpacing.md),
+                Column(
                   children: [
+                    RankBadge(rank: rank, size: 56),
+                    const SizedBox(height: SystemSpacing.sm),
                     Text(
-                      'SYSTEM ONLINE',
-                      style: SystemTextStyles.label
-                          .copyWith(color: SystemPalette.primary),
-                    ),
-                    const SizedBox(height: SystemSpacing.xs),
-                    Text(
-                      nome.toUpperCase(),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: SystemTextStyles.displayLarge,
-                    ),
-                    const SizedBox(height: SystemSpacing.xs),
-                    Text(
-                      '⚔ ${nomeDaClasse(classe).toUpperCase()}',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                      'LV. ${info.nivel}',
                       style: const TextStyle(
-                        fontFamily: SystemFonts.body,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: 2.5, // tracking-[0.18em] de 14px
-                        color: SystemPalette.violet,
+                        fontFamily: SystemFonts.display,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 1.8,
+                        color: SystemPalette.primary,
+                        shadows: SystemTextStyles.glowPrimary,
                       ),
                     ),
                   ],
                 ),
-              ),
-              const SizedBox(width: SystemSpacing.md),
-              Column(
-                children: [
-                  RankBadge(rank: rank, size: 56),
-                  const SizedBox(height: SystemSpacing.sm),
-                  Text(
-                    'LV. ${info.nivel}',
-                    style: const TextStyle(
-                      fontFamily: SystemFonts.display,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 1.8,
-                      color: SystemPalette.primary,
-                      shadows: SystemTextStyles.glowPrimary,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-          const SizedBox(height: SystemSpacing.md),
-          const SystemDivider(),
-          const SizedBox(height: SystemSpacing.md),
-          SystemXpBar(
-            value: info.xpNoNivelAtual,
-            max: info.xpParaProximoNivel,
-            level: info.nivel,
-          ),
-          const SizedBox(height: SystemSpacing.md),
-          const _HomeStatsRow(),
-        ],
+              ],
+            ),
+            const SizedBox(height: SystemSpacing.md),
+            const SystemDivider(),
+            const SizedBox(height: SystemSpacing.md),
+            SystemXpBar(
+              value: info.xpNoNivelAtual,
+              max: info.xpParaProximoNivel,
+              level: info.nivel,
+            ),
+            const SizedBox(height: SystemSpacing.md),
+            const _HomeStatsRow(),
+          ],
+        ),
       ),
     );
   }

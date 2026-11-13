@@ -11,6 +11,9 @@ import '../../../design_system/system_spacing.dart';
 import '../../../design_system/system_text_field.dart';
 import '../../../design_system/system_text_styles.dart';
 import '../../profile/presentation/level_up_overlay.dart';
+import '../../../design_system/system_feedback_dialog.dart';
+import '../../../design_system/system_notice_dialog.dart';
+import '../../achievements/presentation/achievement_notifier.dart';
 import '../../rank_exam/presentation/rank_exam_providers.dart';
 import '../domain/daily_models.dart';
 import '../domain/daily_values.dart';
@@ -55,11 +58,18 @@ class _DailyMissionScreenState extends ConsumerState<DailyMissionScreen> {
     if (!mounted) return;
 
     if (resultado.completouAgora) {
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(const SnackBar(
-            content:
-                Text('MISSÃO DIÁRIA CUMPRIDA  +${DailyValues.xpMissao} XP')));
+      await showSystemNoticeDialog(
+        context,
+        titulo: 'Missão diária cumprida',
+        icone: Icons.task_alt,
+        mensagem: '[SISTEMA] Você completou os objetivos de hoje.',
+        linhas: [
+          '${DailyValues.metaFlexoes} flexões · ${DailyValues.metaAbdominais} abdominais · ${DailyValues.metaKm.toStringAsFixed(0)} km',
+        ],
+        destaque: '+${DailyValues.xpMissao} XP',
+        intensidade: SystemFeedbackIntensity.strong,
+      );
+      if (!mounted) return;
       final xp = resultado.xpGanho!;
       if (xp.subiuDeNivel) {
         await showLevelUpOverlay(
@@ -72,6 +82,7 @@ class _DailyMissionScreenState extends ConsumerState<DailyMissionScreen> {
       }
     }
     if (mounted) await sincronizarExame(context, ref);
+    if (mounted) await conferirConquistas(context, ref);
   }
 
   @override

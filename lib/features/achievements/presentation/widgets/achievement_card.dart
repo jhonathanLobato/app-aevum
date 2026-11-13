@@ -154,6 +154,24 @@ class AchievementCard extends StatelessWidget {
         return Icons.bolt;
       case 'fitness_center':
         return Icons.fitness_center;
+      case 'wb_twilight':
+        return Icons.wb_twilight;
+      case 'bedtime':
+        return Icons.bedtime;
+      case 'timer':
+        return Icons.timer;
+      case 'local_fire_department':
+        return Icons.local_fire_department;
+      case 'directions_run':
+        return Icons.directions_run;
+      case 'explore':
+        return Icons.explore;
+      case 'sports_mma':
+        return Icons.sports_mma;
+      case 'event_available':
+        return Icons.event_available;
+      case 'monitor_weight':
+        return Icons.monitor_weight;
       default:
         return Icons.emoji_events;
     }

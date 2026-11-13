@@ -62,8 +62,13 @@ String formatarNumero(double valor) {
 
 String formatarDistancia(double km) => '${formatarNumero(km)} KM';
 
-/// "31 MIN" — sempre em minutos ("60 MIN", "90 MIN"), como no histórico.
-String formatarDuracao(int minutos) => '$minutos MIN';
+/// "31 MIN" abaixo de 1 hora; "2H" ou "1H 30MIN" a partir de 60 minutos.
+String formatarDuracao(int minutos) {
+  if (minutos < 60) return '$minutos MIN';
+  final h = minutos ~/ 60;
+  final m = minutos % 60;
+  return m == 0 ? '${h}H' : '${h}H ${m}MIN';
+}
 
 /// "5:58 /KM" a partir de minutos por km.
 String formatarRitmo(double minPorKm) {

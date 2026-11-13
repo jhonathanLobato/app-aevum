@@ -1219,7 +1219,8 @@ Esta seção vale sobre as anteriores quando houver conflito.
 
 SISTEMA, TREINOS, ATIVIDADES, MISSÕES, STATUS.
 
-* **SISTEMA** (ordem): cabeçalho do jogador (avatar que abre o Perfil, nome,
+* **SISTEMA** (ordem): cabeçalho do jogador (o quadro inteiro é clicável e abre o Perfil; título
+  em dourado acima do nome — no lugar do antigo "SYSTEM ONLINE" —, nome,
   classe, nível, rank, barra de XP, aviso de penalidade); resumo da missão
   diária (3 barras; toque abre a tela da missão); "Hoje" (treino programado
   ou "Descanso programado" com "Iniciar treino", ou o cartão do treino em
@@ -1231,9 +1232,14 @@ SISTEMA, TREINOS, ATIVIDADES, MISSÕES, STATUS.
   Exercícios, cartão de treino em andamento. Criar/renomear treino é um
   diálogo.
 * **ATIVIDADES**: 7 modalidades — Corrida/Caminhada, Ciclismo, Muay Thai/Boxe,
-  Jiu Jitsu, Basquete, Futebol e Skate (registros antigos migrados).
+  Jiu Jitsu, Basquete, Futebol e Skate (registros antigos migrados). A duração é digitada em **horas e minutos** (guardada em minutos) e exibida como "45 MIN" ou "1H 30MIN"; no histórico de treinos de academia passa a "H:MM:SS" depois de 1 hora.
 * **MISSÕES**: Missão Diária no topo, penalidade pendente, semanal, desafios,
-  exame de rank e concluídas recentemente.
+  exame de rank, concluídas recentemente e, no fim, o quadro **Todas as
+  missões** com o estado de cada uma (ativa, cumprida, liberada ou bloqueada,
+  com o que falta para liberar). Eventos do jogo (missão diária cumprida,
+  exame iniciado, conquista, missão concluída, PR, level up) usam diálogos no
+  estilo do Sistema (`showSystemNoticeDialog` / `SystemFeedbackDialog`); os
+  avisos simples (SnackBar) também seguem o tema do Sistema.
 * **STATUS**, em quadros nesta ordem: **Rank** (rank, nível e estado do
   próximo exame; abre a tela de Rank), **Relatório semanal** (e lista de
   anteriores), um quadro único com as entradas **Histórico** e
@@ -1263,7 +1269,7 @@ SISTEMA, TREINOS, ATIVIDADES, MISSÕES, STATUS.
 
 ## 30.1.1 Ficha do Caçador (Perfil), Corpo e Preferências
 
-Acesso: só pelo avatar do cabeçalho da tela Sistema (`/profile`). A tela se
+Acesso: só tocando no quadro do jogador da tela Sistema (`/profile`). A tela se
 chama **FICHA DO CAÇADOR** (o mesmo texto aparece no título da aba Status).
 Nada é gravado até tocar em **Salvar** no fim; sair sem salvar descarta.
 
@@ -1456,3 +1462,41 @@ Sem o tempo mínimo, quem treina mais chega antes. O gargalo de todos os perfis
 só com missão diária e atividades, sem treinar) e não atrasa nenhum dos
 perfis acima. Os prazos dos exames (495 dias no total) também contam no
 tempo.
+
+## 30.10 Conquistas: XP, categorias e verificação
+
+* Catálogo em `kAchievementCatalog` (40 conquistas), cada uma com **categoria**
+  (Treino, Força, Missão diária, Atividades, Rank, Disciplina, Corpo — a tela
+  de Conquistas agrupa assim) e **XP**, concedido uma única vez ao desbloquear.
+  As 9 originais ficam com XP 0; "Acompanhamento" (XP não definido na lista) foi
+  posta em 100.
+* **Verificação única** (`verificarTudo`): recalcula todos os critérios dos
+  dados reais, então editar/apagar registros não deixa nada inconsistente.
+  Roda ao finalizar treino, bater PR e passar no exame (como antes) e agora
+  também após registrar atividade, registro corporal, missão diária e na
+  abertura do app (virada do dia). `conferirConquistas` (UI) mostra o aviso.
+* Regras: treinos (1/10/25/50/100/250/500); **Madrugador** = 10 treinos
+  iniciados antes das 7h, **Coruja** = 10 depois das 21h, **Maratona** = treino
+  de 2h+; volume (1.000/10.000/100.000/1.000.000 kg); PRs (1/5/25/100);
+  missão diária: acumulados de flexões/abdominais (1.000 e 10.000) e 500 km, e
+  **sequências** de 7/30/100/365 dias — **folga é neutra** (não quebra nem
+  soma), dia falhado ou sem registro zera; **Mês Limpo** = mês civil já
+  encerrado, com todos os dias registrados e cumpridos (folga vale);
+  atividades: 7 modalidades, 100 km de corrida, 50 lutas; corpo: 1º registro e
+  6 meses seguidos com registro; ranks D, C, B, A e Monarca (rank S).
+* O XP das conquistas é somado depois do XP do treino/PR, então não altera o
+  LEVEL UP deles; um nível ganho só por XP de conquista não abre o overlay.
+* Títulos novos (✔): Lenda da Academia, Imortal, Titã, Atlas, Lenda dos
+  Recordes, Cem Dias, Sistema Absoluto, Andarilho, Lutador e Monarca.
+
+## 30.11 Duração e avisos
+
+* **Duração de atividades**: digitada em horas e minutos (dois campos,
+  `atividade_horas_field` e `atividade_duracao_field`), guardada em minutos
+  (`duracaoMinutos`) e exibida por `formatarDuracao`: "45 MIN" abaixo de 1h e
+  "2H" / "1H 30MIN" a partir de 60 min. O histórico de treinos de academia
+  mostra "H:MM:SS" depois de 1 hora.
+* **Avisos de eventos** usam `showSystemNoticeDialog` (design system) em vez de
+  SnackBar: missão diária cumprida e exame iniciado. O catálogo de conquistas é
+  criado de forma idempotente (`insertOrIgnore`) porque a abertura do app e a
+  tela de Conquistas podem montá-lo ao mesmo tempo.

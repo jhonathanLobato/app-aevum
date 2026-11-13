@@ -13,6 +13,7 @@ import '../../profile/presentation/option_tile.dart';
 import '../../profile/presentation/profile_providers.dart';
 import '../domain/body.dart';
 import 'body_providers.dart';
+import '../../achievements/presentation/achievement_notifier.dart';
 import 'body_summary.dart';
 
 /// Novo registro corporal ou edição de um existente. Os valores são digitados
@@ -114,6 +115,7 @@ class _BodyRecordFormScreenState extends ConsumerState<BodyRecordFormScreen> {
       setState(() => _erro = 'Informe ao menos um valor.');
       return;
     }
+    if (mounted) await conferirConquistas(context, ref);
     if (mounted) Navigator.of(context).pop();
   }
 

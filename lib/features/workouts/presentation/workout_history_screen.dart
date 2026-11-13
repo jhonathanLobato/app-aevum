@@ -270,9 +270,10 @@ class _SessionCard extends StatelessWidget {
   }
 
   String _formatarDuracao(int segundosTotais) {
-    final minutos = (segundosTotais ~/ 60).toString().padLeft(2, '0');
+    final horas = segundosTotais ~/ 3600;
+    final minutos = ((segundosTotais % 3600) ~/ 60).toString().padLeft(2, '0');
     final segundos = (segundosTotais % 60).toString().padLeft(2, '0');
-    return '$minutos:$segundos';
+    return horas > 0 ? '$horas:$minutos:$segundos' : '$minutos:$segundos';
   }
 }
 

@@ -118,6 +118,13 @@ class _MissionsList extends ConsumerWidget {
       if (concluidas.isNotEmpty)
         'historico':
             _MissionGroup('CONCLUÍDAS RECENTEMENTE', concluidas, userRank),
+      'quadro': _MissionBoard(
+        semanalAtiva: semanais.isNotEmpty,
+        desafioAtivo: desafios.isNotEmpty,
+        diariaCumprida:
+            ref.watch(dailyTodayProvider).valueOrNull?.concluida ?? false,
+        exame: ref.watch(rankStatusProvider).valueOrNull,
+      ),
     };
 
     final blocosList = blocos.entries.toList();
@@ -172,6 +179,151 @@ class _SectionLabel extends StatelessWidget {
           Container(width: 2, height: 12, color: SystemPalette.primary),
           const SizedBox(width: SystemSpacing.sm),
           Text(label, style: SystemTextStyles.label),
+        ],
+      ),
+    );
+  }
+}
+
+enum _EstadoMissao { ativa, cumprida, disponivel, bloqueada }
+
+/// Todas as missões do Sistema com o estado atual de cada uma: o que já está
+/// ativo e o que ainda está bloqueado (com o que falta para liberar).
+class _MissionBoard extends StatelessWidget {
+  const _MissionBoard({
+    required this.semanalAtiva,
+    required this.desafioAtivo,
+    required this.diariaCumprida,
+    required this.exame,
+  });
+
+  final bool semanalAtiva;
+  final bool desafioAtivo;
+  final bool diariaCumprida;
+  final RankStatus? exame;
+
+  @override
+  Widget build(BuildContext context) {
+    final linhas = <Widget>[
+      _linha(
+        icone: Icons.today,
+        nome: 'Missão de hoje',
+        estado: diariaCumprida ? _EstadoMissao.cumprida : _EstadoMissao.ativa,
+        detalhe: diariaCumprida
+            ? 'Cumprida hoje. Uma nova começa amanhã.'
+            : '50 flexões, 50 abdominais e 2 km. Todos os dias.',
+      ),
+      _linha(
+        icone: Icons.event_available,
+        nome: 'Missão da semana',
+        estado: semanalAtiva ? _EstadoMissao.ativa : _EstadoMissao.bloqueada,
+        detalhe: semanalAtiva
+            ? 'Conclua todos os treinos programados da semana.'
+            : 'Marque seus dias de treino em Treinos › Minha semana.',
+      ),
+      _linha(
+        icone: Icons.trending_up,
+        nome: 'Desafio de carga',
+        estado: desafioAtivo ? _EstadoMissao.ativa : _EstadoMissao.bloqueada,
+        detalhe: desafioAtivo
+            ? 'Supere seu recorde de carga no exercício.'
+            : 'Bata um recorde de carga em um exercício para liberar o desafio dele.',
+      ),
+    ];
+
+    final e = exame;
+    if (e != null) {
+      final _EstadoMissao estado;
+      final String detalhe;
+      switch (e.fase) {
+        case RankExamPhase.maximo:
+          estado = _EstadoMissao.cumprida;
+          detalhe = 'Você já está no rank máximo.';
+        case RankExamPhase.emAndamento:
+          estado = _EstadoMissao.ativa;
+          detalhe = 'Exame para o rank ${e.proximoRank} em andamento.';
+        case RankExamPhase.disponivel:
+          estado = _EstadoMissao.disponivel;
+          detalhe =
+              'Exame para o rank ${e.proximoRank} liberado. Inicie na tela de Rank.';
+        case RankExamPhase.bloqueado:
+          estado = _EstadoMissao.bloqueada;
+          final faltas = [
+            if (e.niveisFaltando > 0)
+              '${e.niveisFaltando} ${e.niveisFaltando == 1 ? 'nível' : 'níveis'}',
+            if (e.experienciaFaltando > 0)
+              '${formatarExperiencia(e.experienciaFaltando)} pontos de experiência',
+          ];
+          detalhe = faltas.isEmpty
+              ? 'Quase liberado.'
+              : 'Para liberar faltam ${faltas.join(' e ')}.';
+      }
+      linhas.add(_linha(
+        icone: Icons.military_tech,
+        nome: 'Exame de rank',
+        estado: estado,
+        detalhe: detalhe,
+      ));
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: SystemSpacing.md),
+      child: SystemPanel(
+        title: 'TODAS AS MISSÕES',
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            for (var i = 0; i < linhas.length; i++) ...[
+              if (i > 0) const SizedBox(height: SystemSpacing.md),
+              linhas[i],
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _linha({
+    required IconData icone,
+    required String nome,
+    required _EstadoMissao estado,
+    required String detalhe,
+  }) {
+    final (rotulo, cor) = switch (estado) {
+      _EstadoMissao.ativa => ('ATIVA', SystemPalette.primary),
+      _EstadoMissao.cumprida => ('CUMPRIDA', SystemPalette.gold),
+      _EstadoMissao.disponivel => ('LIBERADA', SystemPalette.gold),
+      _EstadoMissao.bloqueada => ('BLOQUEADA', SystemPalette.mutedForeground),
+    };
+    final bloqueada = estado == _EstadoMissao.bloqueada;
+    return Opacity(
+      opacity: bloqueada ? 0.7 : 1,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(bloqueada ? Icons.lock_outline : icone, size: 20, color: cor),
+          const SizedBox(width: SystemSpacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(nome.toUpperCase(),
+                          style: SystemTextStyles.label),
+                    ),
+                    Text(rotulo,
+                        style: SystemTextStyles.label.copyWith(color: cor)),
+                  ],
+                ),
+                const SizedBox(height: 2),
+                Text(detalhe,
+                    style: SystemTextStyles.body
+                        .copyWith(color: SystemPalette.mutedForeground)),
+              ],
+            ),
+          ),
         ],
       ),
     );

@@ -7,7 +7,7 @@ import '../../../design_system/system_text_styles.dart';
 import '../domain/achievement.dart';
 
 /// Conquista desbloqueada: o feedback mais forte depois do LEVEL UP.
-/// Conquistas não concedem XP — nenhum "+XP" é mostrado aqui.
+/// Mostra o XP de cada conquista (quando concede).
 Future<void> showAchievementsUnlockedDialog(
   BuildContext context,
   List<Achievement> conquistas,
@@ -40,6 +40,15 @@ Future<void> showAchievementsUnlockedDialog(
               textAlign: TextAlign.center,
               style: SystemTextStyles.bodySmall,
             ),
+            if (conquista.xp > 0) ...[
+              const SizedBox(height: 2),
+              Text(
+                '+${conquista.xp} XP',
+                textAlign: TextAlign.center,
+                style: SystemTextStyles.label
+                    .copyWith(color: SystemPalette.primary),
+              ),
+            ],
             if (conquista != conquistas.last)
               const SizedBox(height: SystemSpacing.md),
           ],

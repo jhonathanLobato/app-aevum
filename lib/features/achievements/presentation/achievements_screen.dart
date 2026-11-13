@@ -97,24 +97,73 @@ class _AchievementsGrid extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              for (var i = 0; i < conquistas.length; i += 2) ...[
-                if (i > 0) const SizedBox(height: SystemSpacing.md),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(child: _card(conquistas[i])),
-                    const SizedBox(width: SystemSpacing.md),
-                    Expanded(
-                      child: i + 1 < conquistas.length
-                          ? _card(conquistas[i + 1])
-                          : const SizedBox(),
-                    ),
-                  ],
-                ),
+              for (final categoria in _categorias()) ...[
+                _tituloCategoria(categoria.$1, categoria.$2),
+                _grade(categoria.$2),
+                const SizedBox(height: SystemSpacing.lg),
               ],
             ],
           ),
         ),
+      ],
+    );
+  }
+
+  /// Conquistas agrupadas na ordem de [kAchievementCategories]; as sem
+  /// categoria conhecida vão para o fim, em "Outras".
+  List<(String, List<Achievement>)> _categorias() {
+    final grupos = <(String, List<Achievement>)>[];
+    final usadas = <Achievement>{};
+    for (final nome in kAchievementCategories) {
+      final lista = conquistas.where((a) => a.categoria == nome).toList();
+      if (lista.isEmpty) continue;
+      usadas.addAll(lista);
+      grupos.add((nome, lista));
+    }
+    final restantes = conquistas.where((a) => !usadas.contains(a)).toList();
+    if (restantes.isNotEmpty) grupos.add(('Outras', restantes));
+    return grupos;
+  }
+
+  Widget _tituloCategoria(String nome, List<Achievement> lista) {
+    final feitas =
+        lista.where((a) => a.status == AchievementStatus.desbloqueada).length;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: SystemSpacing.sm),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(nome.toUpperCase(),
+                style: SystemTextStyles.label
+                    .copyWith(color: SystemPalette.primary)),
+          ),
+          Text('$feitas / ${lista.length}',
+              style: SystemTextStyles.label
+                  .copyWith(color: SystemPalette.mutedForeground)),
+        ],
+      ),
+    );
+  }
+
+  Widget _grade(List<Achievement> lista) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (var i = 0; i < lista.length; i += 2) ...[
+          if (i > 0) const SizedBox(height: SystemSpacing.md),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(child: _card(lista[i])),
+              const SizedBox(width: SystemSpacing.md),
+              Expanded(
+                child: i + 1 < lista.length
+                    ? _card(lista[i + 1])
+                    : const SizedBox(),
+              ),
+            ],
+          ),
+        ],
       ],
     );
   }

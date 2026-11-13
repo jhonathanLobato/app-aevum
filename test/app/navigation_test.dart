@@ -58,7 +58,7 @@ void main() {
       final db = _memoryDb();
       await _pumpApp(tester, db);
 
-      expect(find.text('SYSTEM ONLINE'), findsOneWidget);
+      expect(find.byKey(const Key('home_titulo')), findsOneWidget);
       expect(find.byType(SystemNavigationBar), findsOneWidget);
       expect(find.text('SISTEMA'), findsOneWidget); // label da aba ativa
 
@@ -86,7 +86,7 @@ void main() {
 
       await tester.tap(find.text('SISTEMA'));
       await tester.pumpAndSettle();
-      expect(find.text('SYSTEM ONLINE'), findsOneWidget);
+      expect(find.byKey(const Key('home_titulo')), findsOneWidget);
 
       await _finish(tester, db);
     });
@@ -170,7 +170,7 @@ void main() {
 
       // Se houvesse acúmulo de páginas equivalentes empilhadas, haveria
       // mais de uma ocorrência destes widgets únicos da tela Sistema.
-      expect(find.text('SYSTEM ONLINE'), findsOneWidget);
+      expect(find.byKey(const Key('home_titulo')), findsOneWidget);
       expect(find.byType(AppBar),
           findsNothing); // Sistema usa SystemHeader, não AppBar
 
@@ -361,14 +361,14 @@ void main() {
       await tester.pumpAndSettle();
 
       // Perfil abre pelo avatar do cabeçalho da tela Sistema.
-      await tester.tap(find.byTooltip('Perfil'));
+      await tester.tap(find.byKey(const Key('home_avatar')));
       await tester.pumpAndSettle();
       expect(find.text('PERFIL DO JOGADOR'), findsOneWidget);
       await tester.tap(find.byTooltip('Voltar'));
       await tester.pumpAndSettle();
 
       expect(exercicioId, greaterThan(0));
-      expect(find.text('SYSTEM ONLINE'), findsOneWidget);
+      expect(find.byKey(const Key('home_titulo')), findsOneWidget);
 
       await _finish(tester, db);
     });
@@ -414,7 +414,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(tester.takeException(), isNull);
-      expect(find.text('SYSTEM ONLINE'), findsOneWidget);
+      expect(find.byKey(const Key('home_titulo')), findsOneWidget);
 
       await _finish(tester, db);
     });

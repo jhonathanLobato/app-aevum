@@ -65,6 +65,23 @@ void main() {
     await _finish(tester, db);
   });
 
+  testWidgets('quadro mostra as missões ativas e as bloqueadas',
+      (tester) async {
+    final db = _memoryDb();
+    await DriftProfileRepository(db).addXp(1);
+    await _pump(tester, db); // sem programação e sem recordes
+    await tester.ensureVisible(find.text('TODAS AS MISSÕES'));
+
+    expect(find.text('TODAS AS MISSÕES'), findsOneWidget);
+    expect(find.text('MISSÃO DE HOJE'), findsOneWidget);
+    expect(find.text('ATIVA'), findsOneWidget); // diária
+    expect(find.text('BLOQUEADA'), findsWidgets); // semanal, desafio, exame
+    expect(find.textContaining('Minha semana'), findsWidgets);
+    expect(find.textContaining('Para liberar faltam'), findsOneWidget);
+
+    await _finish(tester, db);
+  });
+
   testWidgets('semanal concluída vai para "concluídas recentemente"',
       (tester) async {
     final db = _memoryDb();

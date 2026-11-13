@@ -265,7 +265,7 @@ void main() {
           t('Caçador Rank E').desbloqueado(conquistas: {}, rank: 'D'), isTrue);
       expect(
           t('Caçador Rank S').desbloqueado(conquistas: {}, rank: 'A'), isFalse);
-      expect(kTitleCatalog.length, 15);
+      expect(kTitleCatalog.length, 25);
     });
   });
 

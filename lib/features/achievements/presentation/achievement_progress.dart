@@ -21,6 +21,22 @@ import '../../statistics/domain/statistics.dart';
       return (stats.treinosRealizados.clamp(0, 25), 25);
     case 'veterano':
       return (stats.treinosRealizados.clamp(0, 100), 100);
+    case 'dedicado':
+      return (stats.treinosRealizados.clamp(0, 50), 50);
+    case 'lenda_da_academia':
+      return (stats.treinosRealizados.clamp(0, 250), 250);
+    case 'imortal':
+      return (stats.treinosRealizados.clamp(0, 500), 500);
+    case 'recordista':
+      return (stats.totalPRs.clamp(0, 25), 25);
+    case 'lenda_dos_recordes':
+      return (stats.totalPRs.clamp(0, 100), 100);
+    case 'dez_toneladas':
+      return (stats.volumeTotal.clamp(0, 10000).round(), 10000);
+    case 'tita':
+      return (stats.volumeTotal.clamp(0, 100000).round(), 100000);
+    case 'atlas':
+      return (stats.volumeTotal.clamp(0, 1000000).round(), 1000000);
     case 'quebra_de_recorde':
       return (stats.totalPRs.clamp(0, 5), 5);
     case 'primeiro_milhar':
