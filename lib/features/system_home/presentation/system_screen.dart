@@ -8,9 +8,9 @@ import '../../../design_system/system_scaffold.dart';
 import '../../../design_system/system_spacing.dart';
 import 'widgets/home_identity_panel.dart';
 import 'widgets/home_mission_panel.dart';
-import 'widgets/home_next_workout_panel.dart';
 import 'widgets/home_recent_activity_panel.dart';
 import 'widgets/home_shortcuts_row.dart';
+import '../../workouts/presentation/widgets/active_workout_card.dart';
 
 /// Tela Sistema/Home, reconstruída na Fase 5 a partir de `index.tsx` do
 /// ZIP do Lovable (ver `SystemLayout.tsx`/`Panel.tsx`/`XpBar.tsx`/
@@ -52,11 +52,9 @@ class SystemScreen extends StatelessWidget {
             child: HomeMissionPanel(),
           ),
           const SizedBox(height: SystemSpacing.lg),
-          SystemEntrance(
-            delay: SystemDurations.staggerStep * 2,
-            child: const HomeNextWorkoutPanel(),
-          ),
-          const SizedBox(height: SystemSpacing.lg),
+          // O cartão já traz o próprio espaçamento inferior (e some sozinho
+          // quando não há treino em andamento).
+          const ActiveWorkoutCard(),
           SystemEntrance(
             delay: SystemDurations.staggerStep * 3,
             child: const HomeRecentActivityPanel(),

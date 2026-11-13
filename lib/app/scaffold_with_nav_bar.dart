@@ -18,6 +18,7 @@ class ScaffoldWithNavBar extends StatelessWidget {
   static const _items = [
     SystemNavItem(icon: Icons.dashboard_rounded, label: 'SISTEMA'),
     SystemNavItem(icon: Icons.fitness_center_rounded, label: 'TREINOS'),
+    SystemNavItem(icon: Icons.directions_run_rounded, label: 'ATIVIDADES'),
     SystemNavItem(icon: Icons.assignment_rounded, label: 'MISSÕES'),
     SystemNavItem(icon: Icons.monitor_heart_rounded, label: 'STATUS'),
     SystemNavItem(icon: Icons.emoji_events_rounded, label: 'CONQUISTAS'),

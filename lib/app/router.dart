@@ -2,6 +2,12 @@ import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
 
 import '../features/achievements/presentation/achievements_screen.dart';
+import '../features/activities/domain/sport_activity.dart';
+import '../features/activities/presentation/activities_screen.dart';
+import '../features/activities/presentation/sport_activity_detail_screen.dart';
+import '../features/activities/presentation/sport_activity_form_screen.dart';
+import '../features/activities/presentation/sport_history_screen.dart';
+import '../features/activities/presentation/sport_type_screen.dart';
 import '../features/exercises/presentation/exercise_history_screen.dart';
 import '../features/exercises/presentation/exercises_screen.dart';
 import '../features/missions/presentation/missions_screen.dart';
@@ -16,6 +22,17 @@ import '../features/workouts/presentation/workouts_screen.dart';
 import 'scaffold_with_nav_bar.dart';
 
 final rootNavigatorKey = GlobalKey<NavigatorState>();
+
+/// Rotas de Atividades com modalidade inválida na URL voltam pra aba.
+String? _redirecionarSeModalidadeInvalida(
+    BuildContext context, GoRouterState state) {
+  return SportType.fromName(state.pathParameters['type']) == null
+      ? '/activities'
+      : null;
+}
+
+SportType _tipoDaRota(GoRouterState state) =>
+    SportType.fromName(state.pathParameters['type'])!;
 
 /// As 5 áreas principais (Sistema/Treinos/Missões/Status/Conquistas) vivem
 /// dentro do [StatefulShellRoute], cada uma em seu próprio branch — isso
@@ -65,6 +82,13 @@ final appRouter = GoRouter(
         StatefulShellBranch(
           routes: [
             GoRoute(
+                path: '/activities',
+                builder: (context, state) => const ActivitiesScreen()),
+          ],
+        ),
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
                 path: '/missions',
                 builder: (context, state) => const MissionsScreen()),
           ],
@@ -84,6 +108,43 @@ final appRouter = GoRouter(
           ],
         ),
       ],
+    ),
+    GoRoute(
+      parentNavigatorKey: rootNavigatorKey,
+      path: '/activities/:type',
+      redirect: _redirecionarSeModalidadeInvalida,
+      builder: (context, state) => SportTypeScreen(tipo: _tipoDaRota(state)),
+    ),
+    GoRoute(
+      parentNavigatorKey: rootNavigatorKey,
+      path: '/activities/:type/new',
+      redirect: _redirecionarSeModalidadeInvalida,
+      builder: (context, state) =>
+          SportActivityFormScreen(tipo: _tipoDaRota(state)),
+    ),
+    GoRoute(
+      parentNavigatorKey: rootNavigatorKey,
+      path: '/activities/:type/history',
+      redirect: _redirecionarSeModalidadeInvalida,
+      builder: (context, state) => SportHistoryScreen(tipo: _tipoDaRota(state)),
+    ),
+    GoRoute(
+      parentNavigatorKey: rootNavigatorKey,
+      path: '/activities/:type/:id',
+      redirect: _redirecionarSeModalidadeInvalida,
+      builder: (context, state) => SportActivityDetailScreen(
+        tipo: _tipoDaRota(state),
+        activityId: int.parse(state.pathParameters['id']!),
+      ),
+    ),
+    GoRoute(
+      parentNavigatorKey: rootNavigatorKey,
+      path: '/activities/:type/:id/edit',
+      redirect: _redirecionarSeModalidadeInvalida,
+      builder: (context, state) => SportActivityFormScreen(
+        tipo: _tipoDaRota(state),
+        activityId: int.parse(state.pathParameters['id']!),
+      ),
     ),
     GoRoute(
       parentNavigatorKey: rootNavigatorKey,

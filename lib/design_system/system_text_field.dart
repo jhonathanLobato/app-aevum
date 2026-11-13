@@ -37,6 +37,7 @@ class SystemTextField extends StatefulWidget {
     this.status = SystemFieldStatus.idle,
     this.enabled = true,
     this.autofocus = false,
+    this.maxLines = 1,
     this.focusNode,
     this.onChanged,
     this.onSubmitted,
@@ -61,6 +62,9 @@ class SystemTextField extends StatefulWidget {
   final SystemFieldStatus status;
   final bool enabled;
   final bool autofocus;
+
+  /// Linhas do campo (observações usam mais de uma).
+  final int maxLines;
   final FocusNode? focusNode;
   final ValueChanged<String>? onChanged;
   final ValueChanged<String>? onSubmitted;
@@ -162,6 +166,7 @@ class _SystemTextFieldState extends State<SystemTextField> {
                         focusNode: _focusNode,
                         enabled: widget.enabled,
                         autofocus: widget.autofocus,
+                        maxLines: widget.maxLines,
                         keyboardType: widget.keyboardType,
                         textInputAction: widget.textInputAction,
                         onChanged: widget.onChanged,

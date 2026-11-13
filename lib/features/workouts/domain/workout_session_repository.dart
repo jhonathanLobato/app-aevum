@@ -33,6 +33,17 @@ abstract class WorkoutSessionRepository {
 
   Future<void> cancel(int sessionId);
 
+  /// Sessão em andamento mais recente (a que o cartão "Treino em andamento"
+  /// mostra), ou `null` se não houver nenhuma.
+  Stream<ActiveWorkoutInfo?> watchActive();
+
+  Future<ActiveWorkoutInfo?> findActive();
+
+  /// Descarta uma sessão em andamento: apaga as séries dela e marca como
+  /// cancelada (some de histórico e estatísticas por exercício). O XP e os
+  /// recordes já concedidos durante o treino NÃO são desfeitos.
+  Future<void> discard(int sessionId);
+
   /// Treinos já finalizados, do mais recente para o mais antigo.
   Stream<List<WorkoutSessionSummary>> watchHistory();
 

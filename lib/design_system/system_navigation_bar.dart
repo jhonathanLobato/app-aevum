@@ -174,16 +174,20 @@ class _SystemNavItemState extends State<_SystemNavItem> {
                 ),
               ),
               const SizedBox(height: SystemSpacing.xs),
-              Text(
-                widget.item.label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontFamily: SystemFonts.display,
-                  fontSize: 8,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 1.12, // tracking-[0.14em] de 8px
-                  color: color,
+              // Com 6 abas o rótulo mais longo ("CONQUISTAS"/"ATIVIDADES") não
+              // cabe em telas estreitas: reduz a fonte em vez de cortar.
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  widget.item.label,
+                  maxLines: 1,
+                  style: TextStyle(
+                    fontFamily: SystemFonts.display,
+                    fontSize: 8,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 1.12, // tracking-[0.14em] de 8px
+                    color: color,
+                  ),
                 ),
               ),
             ],

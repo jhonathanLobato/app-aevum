@@ -12,6 +12,7 @@ import '../../../design_system/system_scaffold.dart';
 import '../../../design_system/system_spacing.dart';
 import '../../../design_system/system_text_styles.dart';
 import '../domain/workout_template.dart';
+import 'widgets/active_workout_card.dart';
 import 'workout_template_providers.dart';
 
 /// Lista de treinos ("Protocolos de Treinamento"), redesenhada na Fase 11 a
@@ -32,6 +33,7 @@ class WorkoutsScreen extends ConsumerWidget {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          const ActiveWorkoutCard(),
           SystemButton(
             label: 'Novo treino',
             variant: SystemButtonVariant.action,

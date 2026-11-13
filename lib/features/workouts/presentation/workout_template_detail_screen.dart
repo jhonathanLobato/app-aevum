@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../design_system/system_back_button.dart';
 import '../../../design_system/system_button.dart';
+import '../../../design_system/system_choice_dialog.dart';
 import '../../../design_system/system_colors.dart';
 import '../../../design_system/system_confirm_dialog.dart';
 import '../../../design_system/system_empty_state.dart';
@@ -127,15 +128,7 @@ class WorkoutTemplateDetailScreen extends ConsumerWidget {
                     size: 16, color: SystemPalette.foreground),
                 onPressed: template.exercicios.isEmpty
                     ? null
-                    : () async {
-                        final sessionId = await ref
-                            .read(workoutSessionRepositoryProvider)
-                            .start(
-                                templateId: template.id, nome: template.nome);
-                        if (context.mounted) {
-                          context.push('/sessions/$sessionId');
-                        }
-                      },
+                    : () => _iniciarTreino(context, ref, template),
               ),
             ],
           ),
@@ -177,6 +170,61 @@ class WorkoutTemplateDetailScreen extends ConsumerWidget {
     if (context.mounted) context.pop();
   }
 
+  /// Inicia o treino — ou CONTINUA o que já está em andamento, em vez de criar
+  /// uma segunda sessão. Se o treino em andamento é de outro modelo, pergunta
+  /// se deve continuar ele ou descartá-lo e iniciar este.
+  Future<void> _iniciarTreino(
+    BuildContext context,
+    WidgetRef ref,
+    WorkoutTemplate template,
+  ) async {
+    final sessionRepo = ref.read(workoutSessionRepositoryProvider);
+    final ativo = await sessionRepo.findActive();
+    if (!context.mounted) return;
+
+    int? sessionId;
+    if (ativo == null) {
+      sessionId =
+          await sessionRepo.start(templateId: template.id, nome: template.nome);
+    } else if (ativo.templateId == template.id) {
+      sessionId = ativo.id;
+    } else {
+      final escolha = await showSystemChoiceDialog<_EscolhaTreinoAtivo>(
+        context,
+        titulo: 'Treino em andamento',
+        mensagem:
+            'Você já tem "${ativo.nome}" em andamento (${ativo.totalSeries} séries registradas). Deseja continuar ele ou descartá-lo e iniciar "${template.nome}"?',
+        icone: Icons.timer_outlined,
+        opcoes: const [
+          SystemChoice(
+            label: 'Continuar o atual',
+            valor: _EscolhaTreinoAtivo.continuar,
+            variant: SystemButtonVariant.action,
+          ),
+          SystemChoice(
+            label: 'Descartar e iniciar este',
+            valor: _EscolhaTreinoAtivo.descartar,
+            variant: SystemButtonVariant.danger,
+          ),
+          SystemChoice(label: 'Voltar', valor: _EscolhaTreinoAtivo.voltar),
+        ],
+      );
+      if (!context.mounted) return;
+      if (escolha == _EscolhaTreinoAtivo.continuar) {
+        sessionId = ativo.id;
+      } else if (escolha == _EscolhaTreinoAtivo.descartar) {
+        ref.read(workoutDraftsProvider).limparSessao(ativo.id);
+        await sessionRepo.discard(ativo.id);
+        sessionId = await sessionRepo.start(
+            templateId: template.id, nome: template.nome);
+      }
+    }
+
+    if (sessionId != null && context.mounted) {
+      context.push('/sessions/$sessionId');
+    }
+  }
+
   /// A posição só muda por aqui (editar o exercício no treino), nunca por
   /// arrastar — arrastar na lista conflitava com rolar a tela.
   Future<void> _editarPosicao(
@@ -207,6 +255,8 @@ class WorkoutTemplateDetailScreen extends ConsumerWidget {
     return null;
   }
 }
+
+enum _EscolhaTreinoAtivo { continuar, descartar, voltar }
 
 class _ExerciseRow extends StatelessWidget {
   const _ExerciseRow({

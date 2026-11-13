@@ -16,6 +16,7 @@ import 'package:gym_system/features/profile/domain/level_curve.dart';
 import 'package:gym_system/features/profile/domain/player_class.dart';
 import 'package:gym_system/features/system_home/presentation/system_screen.dart';
 import 'package:gym_system/features/workouts/data/workout_template_repository_impl.dart';
+import 'package:gym_system/features/workouts/domain/workout_session.dart';
 import 'package:gym_system/features/workouts/presentation/workout_session_providers.dart';
 
 AppDatabase _memoryDb() => AppDatabase.forTesting(NativeDatabase.memory());
@@ -37,6 +38,11 @@ GoRouter _router() => GoRouter(
           builder: (context, state) => Scaffold(
               body:
                   Text('WORKOUT_DETAIL_DESTINO_${state.pathParameters['id']}')),
+        ),
+        GoRoute(
+          path: '/sessions/:id',
+          builder: (context, state) => Scaffold(
+              body: Text('SESSAO_DESTINO_${state.pathParameters['id']}')),
         ),
         GoRoute(
           path: '/exercises',
@@ -141,7 +147,7 @@ void main() {
       await _finish(tester, db);
     });
 
-    testWidgets('mostra o treino criado mais recentemente como PRÓXIMO TREINO',
+    testWidgets('não mostra mais o card PRÓXIMO TREINO nem treino em andamento',
         (tester) async {
       final db = _memoryDb();
       final exId = await db.into(db.exercises).insert(
@@ -154,9 +160,73 @@ void main() {
 
       await _pumpHome(tester, db);
 
-      expect(find.text('PRÓXIMO TREINO'), findsOneWidget);
+      expect(find.text('PRÓXIMO TREINO'), findsNothing);
+      expect(find.text('TREINO EM ANDAMENTO'), findsNothing);
+
+      await _finish(tester, db);
+    });
+
+    testWidgets('treino em andamento aparece com nome, séries e continuar',
+        (tester) async {
+      final db = _memoryDb();
+      final exId = await db.into(db.exercises).insert(
+            ExercisesCompanion.insert(
+                nome: 'Supino reto', grupoMuscular: 'Peito'),
+          );
+      final container = ProviderContainer(
+          overrides: [appDatabaseProvider.overrideWithValue(db)]);
+      final repo = container.read(workoutSessionRepositoryProvider);
+      final sessionId = await repo.start(nome: 'Treino A');
+      await repo.logSet(
+          sessionId: sessionId, exerciseId: exId, repeticoes: 10, carga: 30);
+      container.dispose();
+
+      await _pumpHome(tester, db);
+
+      expect(find.text('TREINO EM ANDAMENTO'), findsOneWidget);
       expect(find.text('TREINO A'), findsOneWidget);
-      expect(find.text('Supino reto'), findsOneWidget);
+      expect(find.textContaining('1 SÉRIE REGISTRADA'), findsOneWidget);
+      expect(find.textContaining('INICIADO HOJE'), findsOneWidget);
+
+      await tester.tap(find.text('CONTINUAR TREINO'));
+      await tester.pumpAndSettle();
+      expect(find.text('SESSAO_DESTINO_$sessionId'), findsOneWidget);
+
+      await _finish(tester, db);
+    });
+
+    testWidgets('descartar o treino em andamento pede confirmação e some',
+        (tester) async {
+      final db = _memoryDb();
+      final container = ProviderContainer(
+          overrides: [appDatabaseProvider.overrideWithValue(db)]);
+      await container
+          .read(workoutSessionRepositoryProvider)
+          .start(nome: 'Treino A');
+      container.dispose();
+
+      await _pumpHome(tester, db);
+      expect(find.text('TREINO EM ANDAMENTO'), findsOneWidget);
+
+      await tester.tap(find.text('DESCARTAR TREINO'));
+      await tester.pumpAndSettle();
+      expect(find.text('DESCARTAR TREINO?'), findsOneWidget);
+
+      await tester.tap(find.text('CANCELAR'));
+      await tester.pumpAndSettle();
+      expect(find.text('TREINO EM ANDAMENTO'), findsOneWidget);
+
+      await tester.tap(find.text('DESCARTAR TREINO'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('DESCARTAR'));
+      for (var i = 0; i < 8; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+      await tester.pumpAndSettle();
+
+      expect(find.text('TREINO EM ANDAMENTO'), findsNothing);
+      final sessao = await db.select(db.workoutSessions).getSingle();
+      expect(sessao.status, WorkoutSessionStatus.cancelado);
 
       await _finish(tester, db);
     });
@@ -197,17 +267,6 @@ void main() {
   });
 
   group('Empty states', () {
-    testWidgets('sem treino cadastrado mostra estado vazio', (tester) async {
-      final db = _memoryDb();
-      await _pumpHome(tester, db);
-
-      expect(find.text('NENHUM TREINO CADASTRADO'), findsOneWidget);
-      // SystemButton sempre mostra o rótulo em maiúsculas (Fase 2).
-      expect(find.text('CRIAR TREINO'), findsOneWidget);
-
-      await _finish(tester, db);
-    });
-
     testWidgets(
         'sem treino finalizado mostra estado vazio em progresso recente',
         (tester) async {
@@ -283,19 +342,6 @@ void main() {
   });
 
   group('navegação', () {
-    testWidgets('botão Iniciar treino vai para a área de Treinos',
-        (tester) async {
-      final db = _memoryDb();
-      await _pumpHome(tester, db);
-
-      await tester.tap(find.text('INICIAR TREINO'));
-      await tester.pumpAndSettle();
-
-      expect(find.text('WORKOUTS_DESTINO'), findsOneWidget);
-
-      await _finish(tester, db);
-    });
-
     testWidgets('ícone de perfil no cabeçalho vai para Perfil', (tester) async {
       final db = _memoryDb();
       await _pumpHome(tester, db);
@@ -317,22 +363,6 @@ void main() {
       await tester.tap(find.text('EXERCÍCIOS'));
       await tester.pumpAndSettle();
       expect(find.text('EXERCICIOS_DESTINO'), findsOneWidget);
-
-      await _finish(tester, db);
-    });
-
-    testWidgets('botão Abrir do próximo treino navega pro detalhe',
-        (tester) async {
-      final db = _memoryDb();
-      final templateRepo = DriftWorkoutTemplateRepository(db);
-      final treinoId = await templateRepo.create('Treino A');
-
-      await _pumpHome(tester, db);
-
-      await tester.tap(find.text('ABRIR'));
-      await tester.pumpAndSettle();
-
-      expect(find.text('WORKOUT_DETAIL_DESTINO_$treinoId'), findsOneWidget);
 
       await _finish(tester, db);
     });

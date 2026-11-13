@@ -6,6 +6,8 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
 import '../features/achievements/data/tables/achievement_table.dart';
+import '../features/activities/data/tables/sport_activity_table.dart';
+import '../features/activities/domain/sport_activity.dart';
 import '../features/achievements/domain/achievement.dart';
 import '../features/exercises/data/tables/exercise_table.dart';
 import '../features/missions/data/tables/mission_table.dart';
@@ -33,6 +35,7 @@ part 'app_database.g.dart';
   PersonalRecords,
   Missions,
   Achievements,
+  SportActivities,
 ])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
@@ -40,10 +43,16 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
+        onCreate: (m) => m.createAll(),
+        // v2: tabela de atividades esportivas (módulo Atividades). Só cria
+        // a tabela nova — nenhuma tabela existente é alterada.
+        onUpgrade: (m, from, to) async {
+          if (from < 2) await m.createTable(sportActivities);
+        },
         beforeOpen: (details) async {
           await customStatement('PRAGMA foreign_keys = ON');
         },

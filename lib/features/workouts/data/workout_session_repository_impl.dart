@@ -222,6 +222,82 @@ class DriftWorkoutSessionRepository implements WorkoutSessionRepository {
     );
   }
 
+  JoinedSelectStatement<HasResultSet, dynamic> _consultaAtiva(
+      Expression<int> totalSeries) {
+    return _db.selectOnly(_db.workoutSessions).join([
+      leftOuterJoin(
+        _db.setEntries,
+        _db.setEntries.sessionId.equalsExp(_db.workoutSessions.id),
+        useColumns: false,
+      ),
+    ])
+      ..addColumns([
+        _db.workoutSessions.id,
+        _db.workoutSessions.templateId,
+        _db.workoutSessions.nome,
+        _db.workoutSessions.data,
+        totalSeries,
+      ])
+      ..where(_db.workoutSessions.status
+          .equalsValue(WorkoutSessionStatus.emAndamento))
+      ..groupBy([_db.workoutSessions.id])
+      ..orderBy([
+        OrderingTerm(
+            expression: _db.workoutSessions.data, mode: OrderingMode.desc),
+        OrderingTerm(
+            expression: _db.workoutSessions.id, mode: OrderingMode.desc),
+      ])
+      ..limit(1);
+  }
+
+  ActiveWorkoutInfo? _toActive(List<TypedResult> rows, Expression<int> total) {
+    if (rows.isEmpty) return null;
+    final row = rows.first;
+    return ActiveWorkoutInfo(
+      id: row.read(_db.workoutSessions.id)!,
+      templateId: row.read(_db.workoutSessions.templateId),
+      nome: row.read(_db.workoutSessions.nome)!,
+      data: row.read(_db.workoutSessions.data)!,
+      totalSeries: row.read(total) ?? 0,
+    );
+  }
+
+  @override
+  Stream<ActiveWorkoutInfo?> watchActive() {
+    final total = _db.setEntries.id.count();
+    return _consultaAtiva(total).watch().map((rows) => _toActive(rows, total));
+  }
+
+  @override
+  Future<ActiveWorkoutInfo?> findActive() async {
+    final total = _db.setEntries.id.count();
+    return _toActive(await _consultaAtiva(total).get(), total);
+  }
+
+  @override
+  Future<void> discard(int sessionId) {
+    return _db.transaction(() async {
+      // Só sessões ainda em andamento podem ser descartadas — treino
+      // concluído (ou já cancelado) nunca perde as séries por aqui.
+      final emAndamento = await (_db.select(_db.workoutSessions)
+            ..where((s) =>
+                s.id.equals(sessionId) &
+                s.status.equalsValue(WorkoutSessionStatus.emAndamento)))
+          .getSingleOrNull();
+      if (emAndamento == null) return;
+
+      await (_db.delete(_db.setEntries)
+            ..where((e) => e.sessionId.equals(sessionId)))
+          .go();
+      await (_db.update(_db.workoutSessions)
+            ..where((s) => s.id.equals(sessionId)))
+          .write(
+        const WorkoutSessionsCompanion(
+            status: Value(WorkoutSessionStatus.cancelado)),
+      );
+    });
+  }
+
   @override
   Future<void> cancel(int sessionId) {
     return (_db.update(_db.workoutSessions)

@@ -58,8 +58,61 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
   final _inputs = <int, _SetInputControllers>{};
   int _currentIndex = 0;
 
+  /// O exercício inicial (ao reabrir um treino em andamento) é escolhido uma
+  /// única vez; depois disso quem manda é a navegação do usuário.
+  bool _indiceDefinido = false;
+
+  /// Idem pra duração: calculada uma vez ao abrir a sessão.
+  bool _duracaoInicializada = false;
+
+  /// Sessão esquecida há mais que isso tem a duração estimada pela última
+  /// série registrada (senão o "tempo total treinando" ficaria absurdo).
+  static const _limiteSessaoAbandonada = Duration(hours: 12);
+
+  /// Cargas/repetições digitadas e ainda não registradas sobrevivem a sair da
+  /// tela (ficam em [workoutDraftsProvider] enquanto o app está aberto).
   _SetInputControllers _controllersFor(int exerciseId) {
-    return _inputs.putIfAbsent(exerciseId, _SetInputControllers.new);
+    return _inputs.putIfAbsent(exerciseId, () {
+      final rascunhos = ref.read(workoutDraftsProvider);
+      final controllers = _SetInputControllers();
+      final salvo = rascunhos.ler(widget.sessionId, exerciseId);
+      if (salvo != null) {
+        controllers.cargaController.text = salvo.carga;
+        controllers.repsController.text = salvo.reps;
+      }
+      void salvar() => rascunhos.salvar(
+            widget.sessionId,
+            exerciseId,
+            controllers.cargaController.text,
+            controllers.repsController.text,
+          );
+      controllers.cargaController.addListener(salvar);
+      controllers.repsController.addListener(salvar);
+      return controllers;
+    });
+  }
+
+  /// Ao abrir a tela de um treino em andamento: se a sessão foi reaberta
+  /// depois de finalizada, continua da duração já gravada; se foi esquecida
+  /// por muito tempo, estima pela última série. Treino recente conta normal.
+  void _inicializarDuracao(WorkoutSession session) {
+    if (_duracaoInicializada) return;
+    _duracaoInicializada = true;
+    final agora = DateTime.now();
+
+    if (session.duracaoSegundos != null) {
+      _duracaoAoRetomar = Duration(seconds: session.duracaoSegundos!);
+      _retomadoEm = agora;
+    } else if (agora.difference(session.data) > _limiteSessaoAbandonada) {
+      DateTime? ultima;
+      for (final serie in session.series) {
+        if (ultima == null || serie.data.isAfter(ultima)) ultima = serie.data;
+      }
+      final estimada =
+          ultima == null ? Duration.zero : ultima.difference(session.data);
+      _duracaoAoRetomar = estimada.isNegative ? Duration.zero : estimada;
+      _retomadoEm = agora;
+    }
   }
 
   void _startTicker(DateTime inicio) {
@@ -77,6 +130,7 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
   Future<void> _retornarTreino(WorkoutSession session) async {
     await ref.read(workoutSessionRepositoryProvider).reopen(session.id);
     if (!mounted) return;
+    _duracaoInicializada = true;
     setState(() {
       _finalizouAqui = false;
       _duracaoAoRetomar = Duration(seconds: session.duracaoSegundos ?? 0);
@@ -169,6 +223,7 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
         .finish(session.id, duracao: _elapsed);
     _ticker?.cancel();
     _ticker = null;
+    ref.read(workoutDraftsProvider).limparSessao(session.id);
     if (mounted) setState(() => _finalizouAqui = true);
 
     if (resultado != null &&
@@ -209,6 +264,8 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
 
         final emAndamento = session.status == WorkoutSessionStatus.emAndamento;
         if (emAndamento) {
+          _inicializarDuracao(session);
+          if (_ticker == null) _elapsed = _calcularElapsed(session.data);
           _startTicker(session.data);
         }
         final duracao = emAndamento
@@ -238,6 +295,18 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                 .map((e) =>
                     _ExercisePlan(id: e.exerciseId, nome: e.exerciseNome))
                 .toList();
+
+        if (!_indiceDefinido &&
+            exercicios.isNotEmpty &&
+            (session.templateId == null || template != null)) {
+          _indiceDefinido = true;
+          if (emAndamento) {
+            // Reabre no primeiro exercício ainda sem série (ou no último).
+            final semSeries = exercicios
+                .indexWhere((e) => session.seriesDoExercicio(e.id).isEmpty);
+            _currentIndex = semSeries >= 0 ? semSeries : exercicios.length - 1;
+          }
+        }
 
         return SystemScaffold(
           title: session.nome,

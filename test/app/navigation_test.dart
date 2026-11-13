@@ -86,13 +86,65 @@ void main() {
       await _finish(tester, db);
     });
 
-    testWidgets('a navigation bar está sempre visível nas 5 abas',
+    testWidgets(
+        'a aba ATIVIDADES fica entre Treinos e Missões e abre as modalidades',
+        (tester) async {
+      final db = _memoryDb();
+      await _pumpApp(tester, db);
+
+      final nav = find.byType(SystemNavigationBar);
+      double x(String label) => tester
+          .getCenter(find.descendant(of: nav, matching: find.text(label)))
+          .dx;
+      final ordem = [
+        'SISTEMA',
+        'TREINOS',
+        'ATIVIDADES',
+        'MISSÕES',
+        'STATUS',
+        'CONQUISTAS'
+      ];
+      for (var i = 0; i < ordem.length - 1; i++) {
+        expect(x(ordem[i]), lessThan(x(ordem[i + 1])),
+            reason: '${ordem[i]} antes de ${ordem[i + 1]}');
+      }
+
+      await tester
+          .tap(find.descendant(of: nav, matching: find.text('ATIVIDADES')));
+      await tester.pumpAndSettle();
+      expect(find.text('REGISTRO ESPORTIVO'), findsOneWidget);
+      expect(find.text('SKATE'), findsOneWidget);
+      expect(find.byType(SystemNavigationBar), findsOneWidget);
+
+      // Tela da modalidade é secundária: esconde a barra e voltar restaura.
+      await tester.tap(find.text('SKATE'));
+      await tester.pumpAndSettle();
+      expect(find.text('ADICIONAR REGISTRO'), findsOneWidget);
+      expect(find.byType(SystemNavigationBar), findsNothing);
+
+      await tester.tap(find.byTooltip('Voltar'));
+      await tester.pumpAndSettle();
+      expect(find.text('REGISTRO ESPORTIVO'), findsOneWidget);
+      expect(find.byType(SystemNavigationBar), findsOneWidget);
+
+      // Treinos continua independente: não tem nenhuma modalidade esportiva.
+      await tester
+          .tap(find.descendant(of: nav, matching: find.text('TREINOS')));
+      await tester.pumpAndSettle();
+      expect(find.text('PROTOCOLOS DE TREINAMENTO'), findsOneWidget);
+      expect(find.text('SKATE'), findsNothing);
+
+      await _finish(tester, db);
+    });
+
+    testWidgets('a navigation bar está sempre visível nas 6 abas',
         (tester) async {
       final db = _memoryDb();
       await _pumpApp(tester, db);
 
       for (final label in [
         'TREINOS',
+        'ATIVIDADES',
         'MISSÕES',
         'STATUS',
         'CONQUISTAS',
@@ -263,7 +315,7 @@ void main() {
       await tester.ensureVisible(find.text('HISTÓRICO'));
       await tester.tap(find.text('HISTÓRICO'));
       await tester.pumpAndSettle();
-      expect(find.text('TREINOS FINALIZADOS'), findsOneWidget);
+      expect(find.text('LINHA DO TEMPO'), findsOneWidget);
       await tester.tap(find.byTooltip('Voltar'));
       await tester.pumpAndSettle();
 

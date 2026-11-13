@@ -30,6 +30,38 @@ final workoutHistoryProvider =
   return ref.watch(workoutSessionRepositoryProvider).watchHistory();
 });
 
+/// Treino em andamento (se houver) — alimenta o cartão "Treino em andamento".
+final activeWorkoutProvider = StreamProvider<ActiveWorkoutInfo?>((ref) {
+  return ref.watch(workoutSessionRepositoryProvider).watchActive();
+});
+
+/// Cargas/repetições digitadas e ainda não registradas, por sessão/exercício.
+/// Vive enquanto o app está aberto: sair da tela do treino não apaga o que
+/// estava digitado (não é persistido em disco).
+final workoutDraftsProvider = Provider<WorkoutDrafts>((ref) => WorkoutDrafts());
+
+class WorkoutDrafts {
+  final _valores = <String, ({String carga, String reps})>{};
+
+  String _chave(int sessionId, int exerciseId) => '$sessionId:$exerciseId';
+
+  ({String carga, String reps})? ler(int sessionId, int exerciseId) =>
+      _valores[_chave(sessionId, exerciseId)];
+
+  void salvar(int sessionId, int exerciseId, String carga, String reps) {
+    final chave = _chave(sessionId, exerciseId);
+    if (carga.isEmpty && reps.isEmpty) {
+      _valores.remove(chave);
+    } else {
+      _valores[chave] = (carga: carga, reps: reps);
+    }
+  }
+
+  void limparSessao(int sessionId) {
+    _valores.removeWhere((chave, _) => chave.startsWith('$sessionId:'));
+  }
+}
+
 final exerciseHistoryProvider =
     StreamProvider.family<List<SetEntryRecord>, int>((ref, exerciseId) {
   return ref

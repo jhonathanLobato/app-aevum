@@ -27,6 +27,23 @@ class SetEntryRecord {
   final DateTime data;
 }
 
+/// Resumo leve da sessão em andamento (cartão "Treino em andamento").
+class ActiveWorkoutInfo {
+  const ActiveWorkoutInfo({
+    required this.id,
+    required this.templateId,
+    required this.nome,
+    required this.data,
+    required this.totalSeries,
+  });
+
+  final int id;
+  final int? templateId;
+  final String nome;
+  final DateTime data;
+  final int totalSeries;
+}
+
 class WorkoutSession {
   const WorkoutSession({
     required this.id,
