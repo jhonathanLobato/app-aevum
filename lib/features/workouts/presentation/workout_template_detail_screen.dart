@@ -16,6 +16,7 @@ import '../domain/workout_template.dart';
 import '../domain/workout_template_repository.dart';
 import 'exercise_picker_sheet.dart';
 import 'exercise_position_sheet.dart';
+import 'workout_name_dialog.dart';
 import 'workout_session_providers.dart';
 import 'workout_template_providers.dart';
 
@@ -57,7 +58,16 @@ class WorkoutTemplateDetailScreen extends ConsumerWidget {
               iconSize: 18,
               color: SystemPalette.mutedForeground,
               tooltip: 'Editar treino',
-              onPressed: () => context.push('/workouts/${template.id}/edit'),
+              onPressed: () async {
+                final nome = await showWorkoutNameDialog(
+                  context,
+                  titulo: 'EDITAR TREINO',
+                  nomeInicial: template.nome,
+                );
+                if (nome != null && nome != template.nome) {
+                  await repo.rename(template.id, nome);
+                }
+              },
             ),
             IconButton(
               icon: const Icon(Icons.delete_outline),
@@ -274,10 +284,6 @@ class _ExerciseRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final meta = (item.seriesAlvo != null && item.repeticoesAlvo != null)
-        ? '${item.seriesAlvo} × ${item.repeticoesAlvo}'
-        : null;
-
     return Container(
       padding: const EdgeInsets.symmetric(
           horizontal: SystemSpacing.md, vertical: SystemSpacing.sm),
@@ -321,10 +327,6 @@ class _ExerciseRow extends StatelessWidget {
               ],
             ),
           ),
-          if (meta != null) ...[
-            Text(meta, style: SystemTextStyles.bodySmall),
-            const SizedBox(width: SystemSpacing.sm),
-          ],
           IconButton(
             icon: const Icon(Icons.edit_outlined,
                 size: 20, color: SystemPalette.primary),

@@ -95,7 +95,7 @@ void main() {
         );
     SportActivity ativ(int id, DateTime data) => SportActivity(
           id: id,
-          tipo: SportType.corrida,
+          tipo: SportType.corridaCaminhada,
           data: data,
           duracaoMinutos: 30,
           criadoEm: data,
@@ -168,9 +168,9 @@ void main() {
 
   testWidgets('só atividades aparecem, sem campos ausentes', (tester) async {
     final db = _memoryDb();
-    await _atividade(db, SportType.corrida, DateTime(2026, 10, 3),
+    await _atividade(db, SportType.corridaCaminhada, DateTime(2026, 10, 3),
         km: 5.2, duracao: 31);
-    await _atividade(db, SportType.boxe, DateTime(2026, 10, 2),
+    await _atividade(db, SportType.muayThaiBoxe, DateTime(2026, 10, 2),
         duracao: 60, rounds: 8);
     await _atividade(db, SportType.futebol, DateTime(2026, 10, 1), duracao: 90);
     await _pump(tester, db);
@@ -191,9 +191,9 @@ void main() {
     await _treino(db, 'Treino B', DateTime(2026, 10, 1));
     await _treino(db, 'Treino C', DateTime(2026, 9, 25));
     await _treino(db, 'Treino Antigo', DateTime(2025, 12, 10));
-    await _atividade(db, SportType.corrida, DateTime(2026, 10, 3),
+    await _atividade(db, SportType.corridaCaminhada, DateTime(2026, 10, 3),
         km: 5.2, duracao: 31);
-    await _atividade(db, SportType.boxe, DateTime(2026, 9, 29),
+    await _atividade(db, SportType.muayThaiBoxe, DateTime(2026, 9, 29),
         duracao: 60, rounds: 8);
     await _atividade(db, SportType.ciclismo, DateTime(2026, 9, 27),
         km: 18.4, duracao: 58);
@@ -203,10 +203,10 @@ void main() {
     final ordem = [
       'OUTUBRO 2026',
       'TREINO A',
-      'CORRIDA',
+      'CORRIDA/CAMINHADA',
       'TREINO B',
       'SETEMBRO 2026',
-      'BOXE',
+      'MUAY THAI/BOXE',
       'CICLISMO',
       'TREINO C',
       'DEZEMBRO 2025',
@@ -228,19 +228,20 @@ void main() {
       (tester) async {
     final db = _memoryDb();
     await _treino(db, 'Treino A', DateTime(2026, 10, 4));
-    await _atividade(db, SportType.corrida, DateTime(2026, 10, 3), km: 5);
+    await _atividade(db, SportType.corridaCaminhada, DateTime(2026, 10, 3),
+        km: 5);
     await _treino(db, 'Treino C', DateTime(2026, 9, 25));
     await _pump(tester, db);
 
     expect(find.text('TREINO A'), findsOneWidget);
-    expect(find.text('CORRIDA'), findsOneWidget);
+    expect(find.text('CORRIDA/CAMINHADA'), findsOneWidget);
     expect(find.byIcon(Icons.keyboard_arrow_down), findsNWidgets(2));
 
     // Cabeçalho inteiro é tocável (não só a seta): toca no texto do mês.
     await tester.tap(find.text('OUTUBRO 2026'));
     await tester.pumpAndSettle();
     expect(find.text('TREINO A'), findsNothing);
-    expect(find.text('CORRIDA'), findsNothing);
+    expect(find.text('CORRIDA/CAMINHADA'), findsNothing);
     expect(find.text('2 REGISTROS'), findsOneWidget); // contagem continua
     expect(find.text('TREINO C'), findsOneWidget); // outros meses intactos
     expect(find.byIcon(Icons.keyboard_arrow_right), findsOneWidget);
@@ -248,7 +249,7 @@ void main() {
     await tester.tap(find.text('OUTUBRO 2026'));
     await tester.pumpAndSettle();
     expect(find.text('TREINO A'), findsOneWidget);
-    expect(find.text('CORRIDA'), findsOneWidget);
+    expect(find.text('CORRIDA/CAMINHADA'), findsOneWidget);
     await _finish(tester, db);
   });
 
@@ -285,12 +286,12 @@ void main() {
       'tocar em atividade abre o detalhe; excluir atualiza o histórico, sem XP',
       (tester) async {
     final db = _memoryDb();
-    await _atividade(db, SportType.corrida, DateTime(2026, 10, 3),
+    await _atividade(db, SportType.corridaCaminhada, DateTime(2026, 10, 3),
         km: 5.2, duracao: 31);
     await _treino(db, 'Treino A', DateTime(2026, 10, 4));
     await _pump(tester, db);
 
-    await tester.tap(find.text('CORRIDA'));
+    await tester.tap(find.text('CORRIDA/CAMINHADA'));
     await _aguardar(tester);
     expect(find.text('DETALHE DO REGISTRO'), findsOneWidget);
 
@@ -301,7 +302,7 @@ void main() {
 
     // Voltou pro histórico geral já sem a corrida; musculação segue lá.
     expect(find.text('LINHA DO TEMPO'), findsOneWidget);
-    expect(find.text('CORRIDA'), findsNothing);
+    expect(find.text('CORRIDA/CAMINHADA'), findsNothing);
     expect(find.text('TREINO A'), findsOneWidget);
     expect(find.text('1 REGISTRO'), findsOneWidget);
     expect(await db.select(db.sportActivities).get(), isEmpty);

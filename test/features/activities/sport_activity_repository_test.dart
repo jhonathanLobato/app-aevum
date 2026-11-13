@@ -35,7 +35,7 @@ void main() {
 
   test('persiste um registro com todos os campos', () async {
     final id = await repo.create(_input(
-      SportType.corrida,
+      SportType.corridaCaminhada,
       distancia: 5.2,
       duracao: 31,
       observacoes: '  Sol forte  ',
@@ -45,7 +45,7 @@ void main() {
     expect(lista, hasLength(1));
     final a = lista.single;
     expect(a.id, id);
-    expect(a.tipo, SportType.corrida);
+    expect(a.tipo, SportType.corridaCaminhada);
     expect(a.data, DateTime(2026, 10, 4));
     expect(a.duracaoMinutos, 31);
     expect(a.distanciaKm, 5.2);
@@ -56,11 +56,11 @@ void main() {
   test('campos que não fazem sentido pra modalidade não são gravados',
       () async {
     await repo.create(_input(SportType.basquete, distancia: 3, rounds: 4));
-    await repo.create(_input(SportType.boxe, distancia: 3, rounds: 4));
+    await repo.create(_input(SportType.muayThaiBoxe, distancia: 3, rounds: 4));
 
     final lista = await repo.watchAll().first;
     final basquete = lista.firstWhere((a) => a.tipo == SportType.basquete);
-    final boxe = lista.firstWhere((a) => a.tipo == SportType.boxe);
+    final boxe = lista.firstWhere((a) => a.tipo == SportType.muayThaiBoxe);
     expect(basquete.distanciaKm, isNull);
     expect(basquete.rounds, isNull);
     expect(boxe.distanciaKm, isNull);
@@ -91,17 +91,17 @@ void main() {
   });
 
   test('filtra por modalidade (nada de outra modalidade aparece)', () async {
-    await repo.create(_input(SportType.corrida));
-    await repo.create(_input(SportType.corrida));
+    await repo.create(_input(SportType.corridaCaminhada));
+    await repo.create(_input(SportType.corridaCaminhada));
     await repo.create(_input(SportType.ciclismo));
-    await repo.create(_input(SportType.boxe));
+    await repo.create(_input(SportType.muayThaiBoxe));
 
-    final corridas = await repo.watchByType(SportType.corrida).first;
-    final boxe = await repo.watchByType(SportType.boxe).first;
+    final corridas = await repo.watchByType(SportType.corridaCaminhada).first;
+    final boxe = await repo.watchByType(SportType.muayThaiBoxe).first;
     final skate = await repo.watchByType(SportType.skate).first;
 
     expect(corridas, hasLength(2));
-    expect(corridas.every((a) => a.tipo == SportType.corrida), isTrue);
+    expect(corridas.every((a) => a.tipo == SportType.corridaCaminhada), isTrue);
     expect(boxe, hasLength(1));
     expect(skate, isEmpty);
   });
@@ -109,14 +109,15 @@ void main() {
   test('limite devolve só os mais recentes, em ordem de data decrescente',
       () async {
     for (var dia = 1; dia <= 10; dia++) {
-      await repo.create(_input(SportType.corrida,
+      await repo.create(_input(SportType.corridaCaminhada,
           data: DateTime(2026, 9, dia), duracao: dia));
     }
 
-    final recentes = await repo.watchByType(SportType.corrida, limite: 3).first;
+    final recentes =
+        await repo.watchByType(SportType.corridaCaminhada, limite: 3).first;
     expect(recentes.map((a) => a.data.day), [10, 9, 8]);
 
-    final completo = await repo.watchByType(SportType.corrida).first;
+    final completo = await repo.watchByType(SportType.corridaCaminhada).first;
     expect(completo, hasLength(10));
   });
 
@@ -124,42 +125,46 @@ void main() {
       'watchAll junta todas as modalidades ordenadas por data (base da Fase 2)',
       () async {
     await repo.create(_input(SportType.skate, data: DateTime(2026, 6, 1)));
-    await repo.create(_input(SportType.corrida, data: DateTime(2026, 10, 1)));
-    await repo.create(_input(SportType.boxe, data: DateTime(2026, 8, 1)));
+    await repo.create(
+        _input(SportType.corridaCaminhada, data: DateTime(2026, 10, 1)));
+    await repo
+        .create(_input(SportType.muayThaiBoxe, data: DateTime(2026, 8, 1)));
 
     final lista = await repo.watchAll().first;
     expect(lista.map((a) => a.tipo),
-        [SportType.corrida, SportType.boxe, SportType.skate]);
+        [SportType.corridaCaminhada, SportType.muayThaiBoxe, SportType.skate]);
   });
 
   group('validações', () {
     test('duração zero ou negativa é recusada', () async {
-      expect(() => repo.create(_input(SportType.corrida, duracao: 0)),
+      expect(() => repo.create(_input(SportType.corridaCaminhada, duracao: 0)),
           throwsA(isA<SportActivityValidationException>()));
-      expect(() => repo.create(_input(SportType.corrida, duracao: -5)),
+      expect(() => repo.create(_input(SportType.corridaCaminhada, duracao: -5)),
           throwsA(isA<SportActivityValidationException>()));
       expect(await repo.watchAll().first, isEmpty);
     });
 
     test('distância negativa é recusada', () {
-      expect(() => repo.create(_input(SportType.corrida, distancia: -1)),
+      expect(
+          () => repo.create(_input(SportType.corridaCaminhada, distancia: -1)),
           throwsA(isA<SportActivityValidationException>()));
     });
 
     test('rounds negativo é recusado', () {
-      expect(() => repo.create(_input(SportType.boxe, rounds: -2)),
+      expect(() => repo.create(_input(SportType.muayThaiBoxe, rounds: -2)),
           throwsA(isA<SportActivityValidationException>()));
     });
 
     test('edição também valida', () async {
-      final id = await repo.create(_input(SportType.corrida));
-      expect(() => repo.update(id, _input(SportType.corrida, duracao: 0)),
+      final id = await repo.create(_input(SportType.corridaCaminhada));
+      expect(
+          () => repo.update(id, _input(SportType.corridaCaminhada, duracao: 0)),
           throwsA(isA<SportActivityValidationException>()));
     });
 
     test('distância e rounds são opcionais (nulos/zero passam)', () async {
-      await repo.create(_input(SportType.corrida));
-      await repo.create(_input(SportType.boxe, rounds: 0));
+      await repo.create(_input(SportType.corridaCaminhada));
+      await repo.create(_input(SportType.muayThaiBoxe, rounds: 0));
       expect(await repo.watchAll().first, hasLength(2));
     });
   });
@@ -175,13 +180,14 @@ void main() {
         );
 
     test('ritmo médio da corrida (min/km)', () {
-      final ritmo = ativ(SportType.corrida, 31, 5.2).ritmoMinPorKm!;
+      final ritmo = ativ(SportType.corridaCaminhada, 31, 5.2).ritmoMinPorKm!;
       expect(ritmo, closeTo(31 / 5.2, 1e-9));
-      expect(ativ(SportType.corrida, 31, 5.2).velocidadeMediaKmh, isNull);
+      expect(
+          ativ(SportType.corridaCaminhada, 31, 5.2).velocidadeMediaKmh, isNull);
     });
 
     test('caminhada também calcula ritmo', () {
-      expect(ativ(SportType.caminhada, 60, 5).ritmoMinPorKm, 12);
+      expect(ativ(SportType.corridaCaminhada, 60, 5).ritmoMinPorKm, 12);
     });
 
     test('velocidade média do ciclismo (km/h)', () {
@@ -191,8 +197,8 @@ void main() {
     });
 
     test('sem distância (ou distância 0) não há métrica', () {
-      expect(ativ(SportType.corrida, 30, null).ritmoMinPorKm, isNull);
-      expect(ativ(SportType.corrida, 30, 0).ritmoMinPorKm, isNull);
+      expect(ativ(SportType.corridaCaminhada, 30, null).ritmoMinPorKm, isNull);
+      expect(ativ(SportType.corridaCaminhada, 30, 0).ritmoMinPorKm, isNull);
       expect(ativ(SportType.ciclismo, 30, null).velocidadeMediaKmh, isNull);
     });
 
@@ -203,9 +209,10 @@ void main() {
   });
 
   test('registrar atividades não gera nenhum XP/gamificação', () async {
-    await repo.create(_input(SportType.corrida, distancia: 5, duracao: 30));
+    await repo
+        .create(_input(SportType.corridaCaminhada, distancia: 5, duracao: 30));
     await repo.create(_input(SportType.futebol, duracao: 90));
-    await repo.create(_input(SportType.boxe, rounds: 6));
+    await repo.create(_input(SportType.muayThaiBoxe, rounds: 6));
     final id = await repo.create(_input(SportType.skate));
     await repo.update(id, _input(SportType.skate, duracao: 45));
     await repo.delete(id);
@@ -218,16 +225,37 @@ void main() {
     expect(await db.select(db.setEntries).get(), isEmpty);
   });
 
-  test('migration v1 -> v2 cria a tabela de atividades', () async {
+  test('migration v4 -> v5 unifica modalidades e remove metas do treino',
+      () async {
     final antigo = AppDatabase.forTesting(
-      NativeDatabase.memory(
-          setup: (raw) => raw.execute('PRAGMA user_version = 1')),
+      NativeDatabase.memory(setup: (raw) {
+        raw.execute('PRAGMA user_version = 4');
+        raw.execute(
+            'CREATE TABLE sport_activities (id INTEGER PRIMARY KEY AUTOINCREMENT, tipo TEXT NOT NULL, data INTEGER NOT NULL, duracao_minutos INTEGER NOT NULL, distancia_km REAL NULL, rounds INTEGER NULL, observacoes TEXT NULL, criado_em INTEGER NOT NULL DEFAULT 0)');
+        raw.execute(
+            "INSERT INTO sport_activities (tipo, data, duracao_minutos) VALUES ('corrida', 0, 30), ('caminhada', 0, 40), ('boxe', 0, 50), ('muayThai', 0, 60), ('skate', 0, 20)");
+        raw.execute(
+            'CREATE TABLE workout_template_exercises (id INTEGER PRIMARY KEY AUTOINCREMENT, template_id INTEGER NOT NULL, exercise_id INTEGER NOT NULL, ordem INTEGER NOT NULL, series_alvo INTEGER NULL, repeticoes_alvo INTEGER NULL)');
+        raw.execute(
+            'CREATE TABLE missions (id INTEGER PRIMARY KEY AUTOINCREMENT, tipo TEXT NOT NULL, nome TEXT NOT NULL, descricao TEXT NOT NULL, recompensa_xp INTEGER NOT NULL, progresso INTEGER NOT NULL DEFAULT 0, objetivo INTEGER NOT NULL, status TEXT NOT NULL DEFAULT "ativa", criado_em INTEGER NOT NULL DEFAULT 0, exercise_id INTEGER NULL)');
+      }),
     );
     addTearDown(antigo.close);
 
-    final antigoRepo = DriftSportActivityRepository(antigo);
-    await antigoRepo.create(_input(SportType.corrida));
-
-    expect(await antigoRepo.watchAll().first, hasLength(1));
+    final tipos = (await antigo.select(antigo.sportActivities).get())
+        .map((a) => a.tipo)
+        .toList();
+    expect(tipos, [
+      SportType.corridaCaminhada,
+      SportType.corridaCaminhada,
+      SportType.muayThaiBoxe,
+      SportType.muayThaiBoxe,
+      SportType.skate,
+    ]);
+    final colunas = await antigo
+        .customSelect('PRAGMA table_info(workout_template_exercises)')
+        .get();
+    expect(colunas.map((c) => c.read<String>('name')),
+        ['id', 'template_id', 'exercise_id', 'ordem']);
   });
 }

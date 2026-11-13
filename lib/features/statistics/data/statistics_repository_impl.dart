@@ -2,7 +2,9 @@ import 'package:drift/drift.dart';
 
 import '../../../database/app_database.dart';
 import '../../workouts/domain/workout_session.dart';
+import '../../daily/domain/daily_values.dart';
 import '../domain/statistics.dart';
+import '../domain/weekly_report.dart';
 import '../domain/streak.dart';
 import '../domain/statistics_repository.dart';
 
@@ -83,6 +85,55 @@ class DriftStatisticsRepository implements StatisticsRepository {
         .map((row) => row.read(_db.workoutSessions.data)!)
         .get();
     return maiorSequenciaDeDias(datas, deslocamento: _deslocamento);
+  }
+
+  @override
+  Stream<List<WeeklyReport>> watchWeeklyReports() async* {
+    Future<List<WeeklyReport>> carregar() async {
+      final treinos = await (_db.select(_db.workoutSessions)
+            ..where(
+                (s) => s.status.equalsValue(WorkoutSessionStatus.concluido)))
+          .get();
+      final atividades = await _db.select(_db.sportActivities).get();
+      final recordes = await _db.select(_db.personalRecords).get();
+
+      final porSemana = <DateTime, List<int>>{};
+      void contar(DateTime data, int indice) {
+        final semana = inicioDaSemana(data);
+        (porSemana[semana] ??= [0, 0, 0])[indice]++;
+      }
+
+      for (final t in treinos) {
+        contar(t.data, 0);
+      }
+      for (final a in atividades) {
+        contar(a.data, 1);
+      }
+      for (final r in recordes) {
+        contar(r.data, 2);
+      }
+      porSemana.putIfAbsent(inicioDaSemana(DateTime.now()), () => [0, 0, 0]);
+
+      final semanas = porSemana.keys.toList()..sort((a, b) => b.compareTo(a));
+      return [
+        for (final s in semanas)
+          WeeklyReport(
+            inicio: s,
+            treinos: porSemana[s]![0],
+            atividades: porSemana[s]![1],
+            recordes: porSemana[s]![2],
+          ),
+      ];
+    }
+
+    yield await carregar();
+    yield* _db
+        .tableUpdates(TableUpdateQuery.onAllTables([
+          _db.workoutSessions,
+          _db.sportActivities,
+          _db.personalRecords,
+        ]))
+        .asyncMap((_) => carregar());
   }
 
   @override

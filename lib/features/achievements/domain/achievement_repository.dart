@@ -13,4 +13,8 @@ abstract class AchievementRepository {
   /// Chamado quando um recorde pessoal é batido: reavalia "Evolução" e
   /// "Superação". Retorna as desbloqueadas agora.
   Future<List<Achievement>> verificarPorNovoRecorde();
+
+  /// Reavalia as conquistas de rank (chamado quando o rank muda, ou seja,
+  /// ao passar num exame de rank).
+  Future<List<Achievement>> verificarRank();
 }

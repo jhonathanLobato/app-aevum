@@ -9,6 +9,7 @@ import '../../../design_system/system_scaffold.dart';
 import '../../../design_system/system_spacing.dart';
 import '../../../design_system/system_text_field.dart';
 import '../../../design_system/system_text_styles.dart';
+import '../../rank_exam/presentation/rank_exam_providers.dart';
 import '../domain/sport_activity.dart';
 import 'activity_providers.dart';
 import 'sport_activity_format.dart';
@@ -139,6 +140,8 @@ class _SportActivityFormScreenState
     } else {
       await repo.create(input);
     }
+    // Atividades contam para o exame de rank.
+    if (mounted) await sincronizarExame(context, ref);
     if (mounted) Navigator.of(context).maybePop();
   }
 

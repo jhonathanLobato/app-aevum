@@ -5,10 +5,15 @@ import '../../../design_system/system_colors.dart';
 import '../../../design_system/system_empty_state.dart';
 import '../../../design_system/system_entrance.dart';
 import '../../../design_system/system_motion.dart';
+import '../../../design_system/system_panel.dart';
 import '../../../design_system/system_scaffold.dart';
 import '../../../design_system/system_spacing.dart';
 import '../../../design_system/system_text_styles.dart';
 import '../../profile/presentation/profile_providers.dart';
+import '../../daily/presentation/daily_providers.dart';
+import '../../rank_exam/presentation/rank_exam_providers.dart';
+import '../../rank_exam/presentation/widgets/rank_exam_card.dart';
+import '../../system_home/presentation/widgets/home_daily_panel.dart';
 import '../domain/mission.dart';
 import 'mission_providers.dart';
 import 'widgets/mission_card.dart';
@@ -51,33 +56,62 @@ class _MissionsList extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    if (missoes.isEmpty) {
-      return const SystemEmptyState(
-        icon: Icons.flag_outlined,
-        message: 'NENHUMA MISSÃO ATIVA',
-        detail: 'Finalize um treino para gerar novas missões.',
-      );
-    }
-
-    final diarias = missoes.where((m) => m.tipo == MissionType.diaria).toList();
     final semanais =
         missoes.where((m) => m.tipo == MissionType.semanal).toList();
     final desafios =
         missoes.where((m) => m.tipo == MissionType.desafio).toList();
     final historicoAsync = ref.watch(missionRecentHistoryProvider);
-    final concluidas = historicoAsync.valueOrNull ?? const <Mission>[];
+    final concluidas = (historicoAsync.valueOrNull ?? const <Mission>[])
+        .where((m) => m.tipo != MissionType.diaria)
+        .toList();
+    final penalidade = ref.watch(pendingPenaltyProvider).valueOrNull ?? 0;
+    final exame = ref.watch(rankExamProvider).valueOrNull;
 
-    // Fase 9: cada grupo visível entra com um stagger discreto. A chave de
-    // cada bloco é o próprio grupo (não a posição), então se o histórico
-    // aparecer depois (stream carregando) os blocos já na tela não têm sua
-    // entrada replay-ada — só o bloco novo ganha um `State` novo.
+    // Cada bloco é chaveado pelo próprio grupo (não pela posição), então se o
+    // histórico aparecer depois os blocos já na tela não repetem a entrada.
     final blocos = <String, Widget>{
-      if (diarias.isNotEmpty)
-        'diarias': _MissionGroup('DIÁRIA', diarias, userRank),
+      'diaria': const Padding(
+        padding: EdgeInsets.only(bottom: SystemSpacing.md),
+        child: HomeDailyPanel(),
+      ),
+      if (penalidade > 0)
+        'penalidade': Padding(
+          padding: const EdgeInsets.only(bottom: SystemSpacing.md),
+          child: SystemPanel(
+            child: Row(
+              children: [
+                const Icon(Icons.warning_amber_rounded,
+                    color: SystemPalette.destructive),
+                const SizedBox(width: SystemSpacing.md),
+                Expanded(
+                  child: Text(
+                    'PENALIDADE: -$penalidade XP por missão diária não cumprida.',
+                    style: SystemTextStyles.label
+                        .copyWith(color: SystemPalette.destructive),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       if (semanais.isNotEmpty)
         'semanais': _MissionGroup('SEMANAL', semanais, userRank),
+      if (semanais.isEmpty)
+        'semanal_vazia': const Padding(
+          padding: EdgeInsets.only(bottom: SystemSpacing.md),
+          child: SystemEmptyState(
+            icon: Icons.event_available_outlined,
+            message: 'SEM MISSÃO SEMANAL',
+            detail: 'Marque seus dias de treino em Treinos › Minha semana.',
+          ),
+        ),
       if (desafios.isNotEmpty)
         'desafios': _MissionGroup('DESAFIOS', desafios, userRank),
+      if (exame != null)
+        'exame': const Padding(
+          padding: EdgeInsets.only(bottom: SystemSpacing.md),
+          child: RankExamCard(),
+        ),
       if (concluidas.isNotEmpty)
         'historico':
             _MissionGroup('CONCLUÍDAS RECENTEMENTE', concluidas, userRank),

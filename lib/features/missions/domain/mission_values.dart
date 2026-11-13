@@ -3,10 +3,21 @@
 class MissionValues {
   const MissionValues._();
 
-  static const treinosPorMissaoSemanal = 4;
+  /// XP da missão semanal conforme a quantidade de treinos programados
+  /// (1 a 7). Tudo ou nada: concluir todos os treinos programados da semana.
+  static const xpSemanalPorTreinos = <int, int>{
+    1: 50,
+    2: 100,
+    3: 150,
+    4: 250,
+    5: 300,
+    6: 350,
+    7: 400,
+  };
 
-  static const xpMissaoDiaria = 50;
-  static const xpMissaoSemanal = 250;
+  static int xpSemanal(int treinosProgramados) =>
+      xpSemanalPorTreinos[treinosProgramados.clamp(1, 7)]!;
+
   static const xpDesafio = 150;
 
   /// Quanto o próximo desafio de carga pede acima do recorde atual.

@@ -36,7 +36,15 @@ class DriftAchievementRepository implements AchievementRepository {
       final existente = await (_db.select(_db.achievements)
             ..where((a) => a.chave.equals(definicao.chave)))
           .getSingleOrNull();
-      if (existente == null) {
+      if (existente != null) {
+        await (_db.update(_db.achievements)
+              ..where((a) => a.chave.equals(definicao.chave)))
+            .write(AchievementsCompanion(
+          nome: Value(definicao.nome),
+          descricao: Value(definicao.descricao),
+          requisito: Value(definicao.requisito),
+        ));
+      } else {
         await _db.into(_db.achievements).insert(
               AchievementsCompanion.insert(
                 chave: definicao.chave,
@@ -48,6 +56,14 @@ class DriftAchievementRepository implements AchievementRepository {
             );
       }
     }
+  }
+
+  @override
+  Future<List<Achievement>> verificarRank() {
+    return _db.transaction(() async {
+      await ensureCatalog();
+      return _verificarRanks();
+    });
   }
 
   @override

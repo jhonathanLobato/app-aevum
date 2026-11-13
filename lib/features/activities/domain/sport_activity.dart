@@ -1,11 +1,10 @@
 /// Modalidades esportivas fixas (Fase 1 do módulo Atividades). Não existe
 /// "Outra" nem modalidade personalizada nesta versão.
 enum SportType {
-  corrida('Corrida', usaDistancia: true),
+  corridaCaminhada('Corrida/Caminhada', usaDistancia: true),
   ciclismo('Ciclismo', usaDistancia: true),
-  caminhada('Caminhada', usaDistancia: true),
-  boxe('Boxe', usaRounds: true),
-  muayThai('Muay Thai', usaRounds: true),
+  muayThaiBoxe('Muay Thai/Boxe', usaRounds: true),
+  jiuJitsu('Jiu Jitsu'),
   basquete('Basquete'),
   futebol('Futebol'),
   skate('Skate');
@@ -22,8 +21,7 @@ enum SportType {
   final bool usaRounds;
 
   /// Ritmo médio (min/km) faz sentido pra corrida e caminhada.
-  bool get calculaRitmo =>
-      this == SportType.corrida || this == SportType.caminhada;
+  bool get calculaRitmo => this == SportType.corridaCaminhada;
 
   /// Velocidade média (km/h) faz sentido pro ciclismo.
   bool get calculaVelocidade => this == SportType.ciclismo;

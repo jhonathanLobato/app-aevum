@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../design_system/system_back_button.dart';
 import '../../../design_system/system_colors.dart';
 import '../../../design_system/system_empty_state.dart';
 import '../../../design_system/system_entrance.dart';
@@ -29,6 +30,7 @@ class AchievementsScreen extends ConsumerWidget {
     return SystemScaffold(
       title: 'CONQUISTAS',
       subtitle: 'TROFÉUS DO SISTEMA',
+      leading: const SystemBackButton(),
       body: achievementsAsync.when(
         data: (conquistas) {
           if (conquistas.isEmpty) {

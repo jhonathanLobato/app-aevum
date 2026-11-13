@@ -38,26 +38,20 @@ class DriftMissionRepository implements MissionRepository {
   @override
   Future<void> ensureRecurringMissions() {
     return _db.transaction(() async {
-      await _garantirMissaoDiaria();
-      await _garantirMissaoSemanal();
+      await _sincronizarMissaoSemanal();
     });
   }
 
   @override
   Future<List<Mission>> registrarTreinoConcluido() {
     return _db.transaction(() async {
-      final diaria = await _garantirMissaoDiaria();
-      final semanal = await _garantirMissaoSemanal();
-
-      final concluidas = <Mission>[];
-      for (final mission in [diaria, semanal]) {
-        final atualizada = await _avancarMissao(mission);
-        if (atualizada != null &&
-            atualizada.status == MissionStatus.concluida) {
-          concluidas.add(atualizada);
-        }
+      final semanal = await _sincronizarMissaoSemanal();
+      if (semanal == null) return const <Mission>[];
+      final atualizada = await _avancarMissao(semanal);
+      if (atualizada != null && atualizada.status == MissionStatus.concluida) {
+        return [atualizada];
       }
-      return concluidas;
+      return const <Mission>[];
     });
   }
 
@@ -107,51 +101,14 @@ class DriftMissionRepository implements MissionRepository {
     });
   }
 
-  /// Garante a missão diária de hoje, buscando pela mais recente *de
-  /// qualquer status* (não só `ativa`).
-  ///
-  /// Bug corrigido na Fase 7: a versão anterior só olhava pra missões
-  /// `ativa`, então assim que a diária de hoje era concluída, a próxima
-  /// chamada (ex.: um segundo treino no mesmo dia) não encontrava nenhuma
-  /// `ativa` e criava OUTRA missão diária do zero — permitindo ganhar o
-  /// XP da diária várias vezes no mesmo dia (contraria a seção 8 do
-  /// CLAUDE.md: "o usuário não deve conseguir ganhar XP indefinidamente").
-  /// Agora, se já existe qualquer missão diária criada hoje (ativa ou já
-  /// concluída), ela é reaproveitada — só expira e cria uma nova quando a
-  /// mais recente é de um dia anterior.
-  Future<db.Mission> _garantirMissaoDiaria() async {
-    final hoje = _apenasData(DateTime.now());
-    final maisRecente = await (_db.select(_db.missions)
-          ..where((m) => m.tipo.equalsValue(MissionType.diaria))
-          ..orderBy([
-            (m) => OrderingTerm(expression: m.criadoEm, mode: OrderingMode.desc)
-          ])
-          ..limit(1))
-        .getSingleOrNull();
-
-    if (maisRecente != null && _apenasData(maisRecente.criadoEm) == hoje) {
-      return maisRecente;
-    }
-    if (maisRecente != null && maisRecente.status == MissionStatus.ativa) {
-      await _expirar(maisRecente.id);
-    }
-
-    final id = await _db.into(_db.missions).insert(
-          MissionsCompanion.insert(
-            tipo: MissionType.diaria,
-            nome: 'Missão diária',
-            descricao: 'Complete seu treino.',
-            recompensaXp: MissionValues.xpMissaoDiaria,
-            objetivo: 1,
-          ),
-        );
-    return (_db.select(_db.missions)..where((m) => m.id.equals(id)))
-        .getSingle();
-  }
-
-  /// Mesma correção de [_garantirMissaoDiaria], pro período semanal.
-  Future<db.Mission> _garantirMissaoSemanal() async {
+  /// Garante a missão semanal desta semana, alinhada à programação:
+  /// objetivo = nº de dias de treino programados, XP conforme a tabela.
+  /// Sem treinos programados não há missão semanal (`null`). Se a
+  /// programação mudar no meio da semana, objetivo e XP acompanham.
+  Future<db.Mission?> _sincronizarMissaoSemanal() async {
+    final programados = (await _db.select(_db.scheduleDays).get()).length;
     final inicioSemana = _inicioDaSemana(DateTime.now());
+
     final maisRecente = await (_db.select(_db.missions)
           ..where((m) => m.tipo.equalsValue(MissionType.semanal))
           ..orderBy([
@@ -160,22 +117,50 @@ class DriftMissionRepository implements MissionRepository {
           ..limit(1))
         .getSingleOrNull();
 
-    if (maisRecente != null &&
-        !_inicioDaSemana(maisRecente.criadoEm).isBefore(inicioSemana)) {
-      return maisRecente;
-    }
-    if (maisRecente != null && maisRecente.status == MissionStatus.ativa) {
-      await _expirar(maisRecente.id);
+    final dessaSemana = maisRecente != null &&
+        !_inicioDaSemana(maisRecente.criadoEm).isBefore(inicioSemana);
+
+    if (!dessaSemana) {
+      if (maisRecente != null && maisRecente.status == MissionStatus.ativa) {
+        await _expirar(maisRecente.id);
+      }
+      if (programados == 0) return null;
+      return _criarSemanal(programados);
     }
 
-    const objetivo = MissionValues.treinosPorMissaoSemanal;
+    if (maisRecente.status == MissionStatus.ativa) {
+      if (programados == 0) {
+        await _expirar(maisRecente.id);
+        return null;
+      }
+      if (maisRecente.objetivo != programados) {
+        await (_db.update(_db.missions)
+              ..where((m) => m.id.equals(maisRecente.id)))
+            .write(MissionsCompanion(
+          objetivo: Value(programados),
+          recompensaXp: Value(MissionValues.xpSemanal(programados)),
+          descricao: Value(_descricaoSemanal(programados)),
+        ));
+        return (_db.select(_db.missions)
+              ..where((m) => m.id.equals(maisRecente.id)))
+            .getSingle();
+      }
+    }
+    return maisRecente;
+  }
+
+  String _descricaoSemanal(int n) => n == 1
+      ? 'Conclua o treino programado da semana.'
+      : 'Conclua os $n treinos programados da semana.';
+
+  Future<db.Mission> _criarSemanal(int programados) async {
     final id = await _db.into(_db.missions).insert(
           MissionsCompanion.insert(
             tipo: MissionType.semanal,
             nome: 'Missão semanal',
-            descricao: 'Complete $objetivo treinos.',
-            recompensaXp: MissionValues.xpMissaoSemanal,
-            objetivo: objetivo,
+            descricao: _descricaoSemanal(programados),
+            recompensaXp: MissionValues.xpSemanal(programados),
+            objetivo: programados,
           ),
         );
     return (_db.select(_db.missions)..where((m) => m.id.equals(id)))

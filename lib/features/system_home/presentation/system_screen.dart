@@ -1,62 +1,60 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../design_system/system_colors.dart';
 import '../../../design_system/system_entrance.dart';
 import '../../../design_system/system_motion.dart';
 import '../../../design_system/system_scaffold.dart';
 import '../../../design_system/system_spacing.dart';
+import '../../rank_exam/presentation/rank_exam_providers.dart';
+import '../../rank_exam/presentation/widgets/rank_exam_card.dart';
+import 'widgets/home_daily_panel.dart';
 import 'widgets/home_identity_panel.dart';
-import 'widgets/home_mission_panel.dart';
-import 'widgets/home_shortcuts_row.dart';
-import '../../workouts/presentation/widgets/active_workout_card.dart';
+import 'widgets/home_penalty_banner.dart';
+import 'widgets/home_today_panel.dart';
+import 'widgets/home_week_panel.dart';
 
-/// Tela Sistema/Home: painel do jogador (identidade, nível, rank e XP), a
-/// missão atual, o treino em andamento (quando houver) e o atalho para o
-/// histórico.
+/// Tela Sistema/Home: o painel do Sistema. Ordem: cabeçalho do jogador
+/// (avatar que abre o Perfil, nível, rank, XP e aviso de penalidade),
+/// resumo da missão diária, "Hoje" (treino programado/descanso ou treino em
+/// andamento), exame de rank (só se ativo) e faixa da semana com folgas.
 ///
-/// Cada seção é um `ConsumerWidget` próprio que observa só o provider que
-/// precisa (perfil, missões, treino ativo) — assim trocar de XP não
-/// reconstrói o card de missão, por exemplo, e vice-versa.
-///
-/// Os painéis entram com um stagger discreto (`SystemEntrance` +
-/// [SystemDurations.staggerStep]) só na primeira montagem desta tela — como
-/// [SystemScreen] é `StatelessWidget` sem nenhum estado que force um rebuild
-/// do zero, trocar de aba e voltar (`IndexedStack` das 6 abas) reaproveita
-/// os mesmos elementos/estados e não repete a entrada.
-class SystemScreen extends StatelessWidget {
+/// Cada seção observa só o provider de que precisa. Os painéis entram com um
+/// stagger discreto só na primeira montagem (as abas ficam num
+/// `IndexedStack`, então trocar de aba e voltar não repete a entrada).
+class SystemScreen extends ConsumerWidget {
   const SystemScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final exameAtivo = ref.watch(rankExamProvider).valueOrNull != null;
+
     return SystemScaffold(
       title: 'SYSTEM',
       subtitle: 'PAINEL DO JOGADOR',
-      actions: [
-        IconButton(
-          icon: const Icon(Icons.person_outline),
-          iconSize: 18,
-          color: SystemPalette.mutedForeground,
-          tooltip: 'Perfil',
-          onPressed: () => context.push('/profile'),
-        ),
-      ],
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          const HomePenaltyBanner(),
           const SystemEntrance(child: HomeIdentityPanel()),
           const SizedBox(height: SystemSpacing.lg),
           const SystemEntrance(
             delay: SystemDurations.staggerStep,
-            child: HomeMissionPanel(),
+            child: HomeDailyPanel(),
           ),
           const SizedBox(height: SystemSpacing.lg),
-          // O cartão já traz o próprio espaçamento inferior (e some sozinho
-          // quando não há treino em andamento).
-          const ActiveWorkoutCard(),
+          SystemEntrance(
+            delay: SystemDurations.staggerStep * 2,
+            child: const HomeTodayPanel(),
+          ),
+          if (exameAtivo) ...[
+            RankExamCard(
+                compacto: true, onAbrir: () => context.go('/missions')),
+            const SizedBox(height: SystemSpacing.lg),
+          ],
           SystemEntrance(
             delay: SystemDurations.staggerStep * 3,
-            child: const HomeShortcutsRow(),
+            child: const HomeWeekPanel(),
           ),
         ],
       ),

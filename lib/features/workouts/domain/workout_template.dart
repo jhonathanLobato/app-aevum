@@ -5,8 +5,6 @@ class WorkoutTemplateExerciseItem {
     required this.exerciseNome,
     required this.grupoMuscular,
     required this.ordem,
-    this.seriesAlvo,
-    this.repeticoesAlvo,
   });
 
   final int templateExerciseId;
@@ -14,8 +12,6 @@ class WorkoutTemplateExerciseItem {
   final String exerciseNome;
   final String grupoMuscular;
   final int ordem;
-  final int? seriesAlvo;
-  final int? repeticoesAlvo;
 }
 
 class WorkoutTemplate {

@@ -1,16 +1,13 @@
-import 'dart:async';
-
+import 'package:drift/drift.dart' show Value;
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
-import 'package:gym_system/database/app_database.dart' hide Mission;
+import 'package:gym_system/database/app_database.dart';
 import 'package:gym_system/database/database_provider.dart';
 import 'package:gym_system/design_system/rank_badge.dart';
 import 'package:gym_system/design_system/system_xp_bar.dart';
-import 'package:gym_system/features/missions/domain/mission.dart';
-import 'package:gym_system/features/missions/presentation/mission_providers.dart';
 import 'package:gym_system/features/profile/data/profile_repository_impl.dart';
 import 'package:gym_system/features/profile/domain/level_curve.dart';
 import 'package:gym_system/features/profile/domain/player_class.dart';
@@ -18,6 +15,9 @@ import 'package:gym_system/features/system_home/presentation/system_screen.dart'
 import 'package:gym_system/features/workouts/data/workout_template_repository_impl.dart';
 import 'package:gym_system/features/workouts/domain/workout_session.dart';
 import 'package:gym_system/features/workouts/presentation/workout_session_providers.dart';
+
+final _celulaHoje = find.byWidgetPredicate(
+    (w) => w is Semantics && (w.properties.label ?? '').endsWith(': hoje'));
 
 AppDatabase _memoryDb() => AppDatabase.forTesting(NativeDatabase.memory());
 
@@ -53,6 +53,11 @@ GoRouter _router() => GoRouter(
           path: '/history',
           builder: (context, state) =>
               const Scaffold(body: Text('HISTORICO_DESTINO')),
+        ),
+        GoRoute(
+          path: '/missions/daily',
+          builder: (context, state) =>
+              const Scaffold(body: Text('MISSAO_DIARIA_DESTINO')),
         ),
         GoRoute(
           path: '/profile',
@@ -247,89 +252,121 @@ void main() {
       await _finish(tester, db);
     });
 
-    testWidgets('mostra a missão diária gerada automaticamente',
+    testWidgets('mostra o resumo da missão diária com as 3 barras',
         (tester) async {
       final db = _memoryDb();
 
       await _pumpHome(tester, db);
 
-      // A missão diária/semanal é garantida pelo próprio repositório
-      // (ensureRecurringMissions) assim que a Home observa o provider —
-      // não precisa ser semeada manualmente.
-      expect(find.text('MISSÃO ATUAL'), findsOneWidget);
-      expect(find.text('Missão diária'), findsOneWidget);
-      expect(find.text('Complete seu treino.'), findsOneWidget);
+      expect(find.text('MISSÃO DIÁRIA'), findsOneWidget);
+      expect(find.text('FLEXÕES'), findsOneWidget);
+      expect(find.text('ABDOMINAIS'), findsOneWidget);
+      expect(find.text('CAMINHADA/CORRIDA'), findsOneWidget);
+      expect(find.text('0 / 50'), findsNWidgets(2));
+      expect(find.text('0 / 2 KM'), findsOneWidget);
+      // Missão atual / quadro de treino antigo não existem mais.
+      expect(find.text('MISSÃO ATUAL'), findsNothing);
+      expect(find.text('Complete seu treino.'), findsNothing);
 
       await _finish(tester, db);
     });
-  });
 
-  group('Empty states', () {
-    testWidgets('sem missão ativa mostra estado vazio', (tester) async {
+    testWidgets('tocar na missão diária abre a tela da missão', (tester) async {
       final db = _memoryDb();
+      await _pumpHome(tester, db);
 
-      await _pumpHome(
-        tester,
-        db,
-        extraOverrides: [
-          activeMissionsProvider
-              .overrideWith((ref) => Stream.value(const <Mission>[])),
-        ],
-      );
-
-      expect(find.text('NENHUMA MISSÃO ATIVA'), findsOneWidget);
+      await tester.tap(find.text('MISSÃO DIÁRIA'));
+      await tester.pumpAndSettle();
+      expect(find.text('MISSAO_DIARIA_DESTINO'), findsOneWidget);
 
       await _finish(tester, db);
     });
-  });
 
-  group('loading e error', () {
-    testWidgets(
-        'loading da missão mostra indicador, não quebra o resto da tela',
+    testWidgets('HOJE: sem programação, treino programado e descanso',
         (tester) async {
       final db = _memoryDb();
-      final controller = StreamController<List<Mission>>();
-      addTearDown(controller.close);
+      await _pumpHome(tester, db);
+      expect(find.text('HOJE'), findsOneWidget);
+      expect(find.text('NENHUM TREINO PROGRAMADO'), findsOneWidget);
+      expect(find.text('INICIAR TREINO'), findsOneWidget);
 
-      await _pumpHome(
-        tester,
-        db,
-        extraOverrides: [
-          activeMissionsProvider.overrideWith((ref) => controller.stream),
-        ],
-        settle: false,
-      );
+      final hoje = DateTime.now().weekday;
+      await db
+          .into(db.scheduleDays)
+          .insert(ScheduleDaysCompanion.insert(weekday: Value(hoje)));
+      await tester.pumpAndSettle();
+      expect(find.text('TREINO PROGRAMADO'), findsOneWidget);
 
-      expect(find.text('MISSÃO ATUAL'), findsOneWidget);
-      expect(find.byType(CircularProgressIndicator), findsWidgets);
-      expect(tester.takeException(), isNull);
+      await db.delete(db.scheduleDays).go();
+      await db
+          .into(db.scheduleDays)
+          .insert(ScheduleDaysCompanion.insert(weekday: Value(hoje % 7 + 1)));
+      await tester.pumpAndSettle();
+      expect(find.text('DESCANSO PROGRAMADO'), findsOneWidget);
+      expect(find.text('INICIAR TREINO'), findsOneWidget);
 
       await _finish(tester, db);
     });
 
-    testWidgets('erro ao carregar missões mostra mensagem, não stack trace',
+    testWidgets('faixa da semana: 7 dias e folga marcada ao tocar no dia',
         (tester) async {
       final db = _memoryDb();
+      await _pumpHome(tester, db);
 
-      await _pumpHome(
-        tester,
-        db,
-        extraOverrides: [
-          activeMissionsProvider
-              .overrideWith((ref) => Stream.error(Exception('falhou'))),
-        ],
-      );
+      expect(find.text('SEMANA'), findsOneWidget);
+      expect(find.text('FOLGAS: 0/4'), findsOneWidget);
+      expect(_celulaHoje, findsOneWidget);
 
-      expect(find.text('ERRO AO CARREGAR MISSÕES'), findsOneWidget);
-      expect(find.textContaining('Exception'), findsNothing);
-      expect(find.textContaining('falhou'), findsNothing);
+      await tester.ensureVisible(_celulaHoje);
+      await tester.tap(_celulaHoje);
+      await tester.pumpAndSettle();
+
+      expect(find.text('FOLGAS: 1/4'), findsOneWidget);
+      expect(find.textContaining('Folga marcada'), findsOneWidget);
 
       await _finish(tester, db);
+    });
+
+    testWidgets('mostra o aviso de penalidade até o usuário confirmar',
+        (tester) async {
+      final db = _memoryDb();
+      await db.into(db.dailyDays).insert(DailyDaysCompanion.insert(
+            dia: '2026-01-01',
+            processado: const Value(true),
+            penalidadeXp: const Value(100),
+            avisado: const Value(false),
+          ));
+
+      await _pumpHome(tester, db);
+      expect(find.text('PENALIDADE APLICADA'), findsOneWidget);
+      expect(find.text('-100 XP'), findsOneWidget);
+
+      await tester.tap(find.text('ENTENDI'));
+      await tester.pumpAndSettle();
+      expect(find.text('PENALIDADE APLICADA'), findsNothing);
+
+      await _finish(tester, db);
+    });
+
+    testWidgets('exame de rank aparece só quando está ativo', (tester) async {
+      final db = _memoryDb();
+      await _pumpHome(tester, db);
+      expect(find.text('EXAME DE RANK'), findsNothing);
+      await _finish(tester, db);
+
+      final db2 = _memoryDb();
+      await DriftProfileRepository(db2).addXp(1);
+      await db2.into(db2.rankExams).insert(RankExamsCompanion.insert(
+          rankAlvo: 'E', inicio: DateTime.now(), prazoDias: 21));
+      await _pumpHome(tester, db2);
+      expect(find.text('EXAME DE RANK'), findsOneWidget);
+      expect(find.text('TREINOS DE ACADEMIA'), findsOneWidget);
+      await _finish(tester, db2);
     });
   });
 
   group('navegação', () {
-    testWidgets('ícone de perfil no cabeçalho vai para Perfil', (tester) async {
+    testWidgets('avatar do cabeçalho abre o Perfil', (tester) async {
       final db = _memoryDb();
       await _pumpHome(tester, db);
 
@@ -341,17 +378,13 @@ void main() {
       await _finish(tester, db);
     });
 
-    testWidgets('sem atalho de Exercícios; atalho Histórico navega',
+    testWidgets('sem atalhos de Exercícios nem Histórico na tela Sistema',
         (tester) async {
       final db = _memoryDb();
       await _pumpHome(tester, db);
 
       expect(find.text('EXERCÍCIOS'), findsNothing);
-
-      await tester.ensureVisible(find.text('HISTÓRICO'));
-      await tester.tap(find.text('HISTÓRICO'));
-      await tester.pumpAndSettle();
-      expect(find.text('HISTORICO_DESTINO'), findsOneWidget);
+      expect(find.text('HISTÓRICO'), findsNothing);
 
       await _finish(tester, db);
     });

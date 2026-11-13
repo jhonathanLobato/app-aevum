@@ -22,8 +22,7 @@ SetEntryRecord _serie(int id,
 void main() {
   group('WorkoutSetsPanel', () {
     testWidgets('lista vazia mostra estado vazio', (tester) async {
-      await tester.pumpWidget(
-          _wrap(const WorkoutSetsPanel(series: [], seriesAlvo: null)));
+      await tester.pumpWidget(_wrap(const WorkoutSetsPanel(series: [])));
       expect(find.text('NENHUMA SÉRIE REGISTRADA NESTE EXERCÍCIO'),
           findsOneWidget);
     });
@@ -31,7 +30,7 @@ void main() {
     testWidgets('uma nova série aparece registrada com os valores reais',
         (tester) async {
       await tester.pumpWidget(_wrap(
-        WorkoutSetsPanel(series: [_serie(1)], seriesAlvo: null),
+        WorkoutSetsPanel(series: [_serie(1)]),
       ));
       await tester.pumpAndSettle();
 
@@ -56,7 +55,7 @@ void main() {
           .pumpWidget(_wrap(ValueListenableBuilder<List<SetEntryRecord>>(
         valueListenable: notifier,
         builder: (context, series, _) {
-          return WorkoutSetsPanel(series: series, seriesAlvo: null);
+          return WorkoutSetsPanel(series: series);
         },
       )));
       await tester.pumpAndSettle();
@@ -86,17 +85,6 @@ void main() {
       );
       final decoracaoDepois = containerDepois.decoration as BoxDecoration;
       expect(decoracaoDepois.border!.top.color, Colors.transparent);
-    });
-
-    testWidgets('séries planejadas (ainda não registradas) mostram traço',
-        (tester) async {
-      await tester.pumpWidget(_wrap(
-        WorkoutSetsPanel(series: [_serie(1)], seriesAlvo: 3),
-      ));
-      await tester.pumpAndSettle();
-
-      expect(find.text('—'), findsNWidgets(2));
-      expect(find.byIcon(Icons.radio_button_unchecked), findsNWidgets(2));
     });
   });
 }

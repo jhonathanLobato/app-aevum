@@ -63,8 +63,6 @@ class DriftWorkoutTemplateRepository implements WorkoutTemplateRepository {
             exerciseNome: exercise.nome,
             grupoMuscular: exercise.grupoMuscular,
             ordem: templateExercise.ordem,
-            seriesAlvo: templateExercise.seriesAlvo,
-            repeticoesAlvo: templateExercise.repeticoesAlvo,
           ),
         );
       }
@@ -93,12 +91,7 @@ class DriftWorkoutTemplateRepository implements WorkoutTemplateRepository {
   }
 
   @override
-  Future<void> addExercise(
-    int templateId,
-    int exerciseId, {
-    int? seriesAlvo,
-    int? repeticoesAlvo,
-  }) {
+  Future<void> addExercise(int templateId, int exerciseId) {
     return _db.transaction(() async {
       final maiorOrdem = await (_db.selectOnly(_db.workoutTemplateExercises)
             ..addColumns([_db.workoutTemplateExercises.ordem.max()])
@@ -111,8 +104,6 @@ class DriftWorkoutTemplateRepository implements WorkoutTemplateRepository {
               templateId: templateId,
               exerciseId: exerciseId,
               ordem: (maiorOrdem ?? -1) + 1,
-              seriesAlvo: Value(seriesAlvo),
-              repeticoesAlvo: Value(repeticoesAlvo),
             ),
           );
     });

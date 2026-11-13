@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../design_system/rank_badge.dart';
 import '../../../../design_system/system_colors.dart';
@@ -11,6 +12,7 @@ import '../../../../design_system/system_xp_bar.dart';
 import '../../../profile/domain/level_curve.dart';
 import '../../../profile/domain/player_class.dart';
 import '../../../profile/domain/user_profile.dart';
+import '../../../profile/presentation/avatar_icons.dart';
 import '../../../profile/presentation/profile_providers.dart';
 import '../../../statistics/presentation/statistics_providers.dart';
 
@@ -82,6 +84,25 @@ class _IdentityContent extends ConsumerWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              Tooltip(
+                message: 'Perfil',
+                child: GestureDetector(
+                  key: const Key('home_avatar'),
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () => context.push('/profile'),
+                  child: Container(
+                    width: 48,
+                    height: 48,
+                    margin: const EdgeInsets.only(right: SystemSpacing.md),
+                    decoration: BoxDecoration(
+                      color: SystemPalette.primary.withValues(alpha: 0.08),
+                      border: Border.all(color: SystemPalette.primary),
+                    ),
+                    child: Icon(iconeDoAvatar(user?.avatar),
+                        color: SystemPalette.primary, size: 26),
+                  ),
+                ),
+              ),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,

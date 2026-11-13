@@ -35,7 +35,11 @@ class ActivitiesScreen extends StatelessWidget {
                 children: [
                   Expanded(child: _SportCard(tipo: tipos[i])),
                   const SizedBox(width: SystemSpacing.md),
-                  Expanded(child: _SportCard(tipo: tipos[i + 1])),
+                  Expanded(
+                    child: i + 1 < tipos.length
+                        ? _SportCard(tipo: tipos[i + 1])
+                        : const SizedBox.shrink(),
+                  ),
                 ],
               ),
             ),

@@ -20,15 +20,13 @@ const _meses = [
 /// Ícones das modalidades (só ícones já disponíveis no Flutter).
 IconData iconeDaModalidade(SportType tipo) {
   switch (tipo) {
-    case SportType.corrida:
+    case SportType.corridaCaminhada:
       return Icons.directions_run;
     case SportType.ciclismo:
       return Icons.directions_bike;
-    case SportType.caminhada:
-      return Icons.directions_walk;
-    case SportType.boxe:
+    case SportType.muayThaiBoxe:
       return Icons.sports_mma;
-    case SportType.muayThai:
+    case SportType.jiuJitsu:
       return Icons.sports_kabaddi;
     case SportType.basquete:
       return Icons.sports_basketball;

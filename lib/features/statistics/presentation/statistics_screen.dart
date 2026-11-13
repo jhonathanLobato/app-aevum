@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+
+import '../../../design_system/system_button.dart';
 
 import '../../../design_system/system_colors.dart';
 import '../../../design_system/system_empty_state.dart';
@@ -13,11 +16,11 @@ import '../../../design_system/system_text_styles.dart';
 import '../domain/statistics.dart';
 import 'statistics_providers.dart';
 import 'widgets/player_attributes_panel.dart';
-import 'widgets/status_identity_panel.dart';
+import 'widgets/weekly_report_card.dart';
 
-/// Tela STATUS ("ficha de evolução"): identidade real (nome/classe/rank/
-/// nível/XP), os 3 atributos derivados do MVP, as estatísticas globais e o
-/// detalhe por exercício. É a aba STATUS (rota `/statistics`).
+/// Tela STATUS ("ficha de evolução"): relatório semanal, estatísticas
+/// globais, os 3 atributos derivados do MVP, atalhos para Histórico e
+/// Conquistas e o detalhe por exercício (a identidade fica na tela Sistema). É a aba STATUS (rota `/statistics`).
 class StatisticsScreen extends ConsumerWidget {
   const StatisticsScreen({super.key});
 
@@ -32,7 +35,7 @@ class StatisticsScreen extends ConsumerWidget {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const SystemEntrance(child: StatusIdentityPanel()),
+          const SystemEntrance(child: WeeklyReportCard()),
           const SizedBox(height: SystemSpacing.lg),
           SystemEntrance(
             delay: SystemDurations.staggerStep,
@@ -55,6 +58,28 @@ class StatisticsScreen extends ConsumerWidget {
           SystemEntrance(
             delay: SystemDurations.staggerStep * 2,
             child: const PlayerAttributesPanel(),
+          ),
+          const SizedBox(height: SystemSpacing.lg),
+          Row(
+            children: [
+              Expanded(
+                child: SystemButton(
+                  label: 'Histórico',
+                  icon: const Icon(Icons.history_rounded,
+                      size: 16, color: SystemPalette.foreground),
+                  onPressed: () => context.push('/history'),
+                ),
+              ),
+              const SizedBox(width: SystemSpacing.sm),
+              Expanded(
+                child: SystemButton(
+                  label: 'Conquistas',
+                  icon: const Icon(Icons.emoji_events_rounded,
+                      size: 16, color: SystemPalette.gold),
+                  onPressed: () => context.push('/achievements'),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: SystemSpacing.lg),
           SystemEntrance(

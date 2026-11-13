@@ -2,6 +2,8 @@ import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
 
 import '../features/achievements/presentation/achievements_screen.dart';
+import '../features/daily/presentation/daily_mission_screen.dart';
+import '../features/statistics/presentation/weekly_reports_screen.dart';
 import '../features/activities/domain/sport_activity.dart';
 import '../features/activities/presentation/activities_screen.dart';
 import '../features/activities/presentation/sport_activity_detail_screen.dart';
@@ -15,7 +17,6 @@ import '../features/profile/presentation/profile_screen.dart';
 import '../features/statistics/presentation/statistics_screen.dart';
 import '../features/system_home/presentation/system_screen.dart';
 import '../features/workouts/presentation/active_workout_screen.dart';
-import '../features/workouts/presentation/workout_form_screen.dart';
 import '../features/workouts/presentation/workout_history_screen.dart';
 import '../features/workouts/presentation/workout_template_detail_screen.dart';
 import '../features/workouts/presentation/workouts_screen.dart';
@@ -91,13 +92,6 @@ final appRouter = GoRouter(
                 builder: (context, state) => const StatisticsScreen()),
           ],
         ),
-        StatefulShellBranch(
-          routes: [
-            GoRoute(
-                path: '/achievements',
-                builder: (context, state) => const AchievementsScreen()),
-          ],
-        ),
       ],
     ),
     GoRoute(
@@ -152,20 +146,8 @@ final appRouter = GoRouter(
     ),
     GoRoute(
       parentNavigatorKey: rootNavigatorKey,
-      path: '/workouts/new',
-      builder: (context, state) => const WorkoutFormScreen(),
-    ),
-    GoRoute(
-      parentNavigatorKey: rootNavigatorKey,
       path: '/workouts/:id',
       builder: (context, state) => WorkoutTemplateDetailScreen(
-        templateId: int.parse(state.pathParameters['id']!),
-      ),
-    ),
-    GoRoute(
-      parentNavigatorKey: rootNavigatorKey,
-      path: '/workouts/:id/edit',
-      builder: (context, state) => WorkoutFormScreen(
         templateId: int.parse(state.pathParameters['id']!),
       ),
     ),
@@ -180,6 +162,21 @@ final appRouter = GoRouter(
       parentNavigatorKey: rootNavigatorKey,
       path: '/history',
       builder: (context, state) => const WorkoutHistoryScreen(),
+    ),
+    GoRoute(
+      parentNavigatorKey: rootNavigatorKey,
+      path: '/missions/daily',
+      builder: (context, state) => const DailyMissionScreen(),
+    ),
+    GoRoute(
+      parentNavigatorKey: rootNavigatorKey,
+      path: '/achievements',
+      builder: (context, state) => const AchievementsScreen(),
+    ),
+    GoRoute(
+      parentNavigatorKey: rootNavigatorKey,
+      path: '/reports',
+      builder: (context, state) => const WeeklyReportsScreen(),
     ),
     GoRoute(
       parentNavigatorKey: rootNavigatorKey,

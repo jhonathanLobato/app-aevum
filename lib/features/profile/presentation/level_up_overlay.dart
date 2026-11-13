@@ -27,6 +27,7 @@ Future<void> showLevelUpOverlay(
   required int novoNivel,
   String? rankAnterior,
   String? novoRank,
+  bool rankUp = false,
 }) {
   return showGeneralDialog(
     context: context,
@@ -39,6 +40,7 @@ Future<void> showLevelUpOverlay(
       novoNivel: novoNivel,
       rankAnterior: rankAnterior,
       novoRank: novoRank,
+      rankUp: rankUp,
     ),
     transitionBuilder: (context, animation, _, child) {
       return FadeTransition(opacity: animation, child: child);
@@ -53,7 +55,11 @@ class LevelUpOverlay extends StatefulWidget {
     required this.novoNivel,
     this.rankAnterior,
     this.novoRank,
+    this.rankUp = false,
   });
+
+  /// `true` = sobe de RANK (passou no exame): mostra "RANK UP" no lugar dos níveis.
+  final bool rankUp;
 
   final int nivelAnterior;
   final int novoNivel;
@@ -149,7 +155,11 @@ class _LevelUpOverlayState extends State<LevelUpOverlay>
                   child: _Conteudo(
                     nivelAnterior: widget.nivelAnterior,
                     novoNivel: widget.novoNivel,
-                    novoRank: _mudouDeRank ? widget.novoRank : null,
+                    rankAnterior: widget.rankAnterior,
+                    rankUp: widget.rankUp,
+                    novoRank: (_mudouDeRank || widget.rankUp)
+                        ? widget.novoRank
+                        : null,
                     onFechar: _fechar,
                   ),
                 ),
@@ -168,8 +178,12 @@ class _Conteudo extends StatelessWidget {
     required this.novoNivel,
     required this.novoRank,
     required this.onFechar,
+    this.rankAnterior,
+    this.rankUp = false,
   });
 
+  final String? rankAnterior;
+  final bool rankUp;
   final int nivelAnterior;
   final int novoNivel;
   final String? novoRank;
@@ -180,9 +194,9 @@ class _Conteudo extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        const Text(
-          'LEVEL UP',
-          style: TextStyle(
+        Text(
+          rankUp ? 'RANK UP' : 'LEVEL UP',
+          style: const TextStyle(
             fontFamily: SystemFonts.display,
             fontSize: 28,
             fontWeight: FontWeight.w900,
@@ -192,32 +206,46 @@ class _Conteudo extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 28),
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Text(
-              'LV. $nivelAnterior',
-              style: SystemTextStyles.label.copyWith(fontSize: 13),
-            ),
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16),
-              child: Icon(Icons.arrow_forward,
-                  color: SystemPalette.primary, size: 22),
-            ),
-            Text(
-              'LV. $novoNivel',
-              style: const TextStyle(
-                fontFamily: SystemFonts.display,
-                fontSize: 40,
-                fontWeight: FontWeight.w900,
-                color: SystemPalette.primary,
-                shadows: SystemTextStyles.glowPrimary,
+        if (rankUp && rankAnterior != null && novoRank != null)
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              RankBadge(rank: rankAnterior!, size: 48),
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16),
+                child: Icon(Icons.arrow_forward,
+                    color: SystemPalette.primary, size: 22),
               ),
-            ),
-          ],
-        ),
-        if (novoRank != null) ...[
+              RankBadge(rank: novoRank!, size: 80),
+            ],
+          )
+        else
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Text(
+                'LV. $nivelAnterior',
+                style: SystemTextStyles.label.copyWith(fontSize: 13),
+              ),
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16),
+                child: Icon(Icons.arrow_forward,
+                    color: SystemPalette.primary, size: 22),
+              ),
+              Text(
+                'LV. $novoNivel',
+                style: const TextStyle(
+                  fontFamily: SystemFonts.display,
+                  fontSize: 40,
+                  fontWeight: FontWeight.w900,
+                  color: SystemPalette.primary,
+                  shadows: SystemTextStyles.glowPrimary,
+                ),
+              ),
+            ],
+          ),
+        if (novoRank != null && !rankUp) ...[
           const SizedBox(height: 28),
           Text('NOVO RANK',
               style: SystemTextStyles.label.copyWith(fontSize: 10)),

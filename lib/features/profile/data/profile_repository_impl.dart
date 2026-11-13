@@ -39,18 +39,45 @@ class DriftProfileRepository implements ProfileRepository {
         UsersCompanion(
           xp: Value(novoXpTotal),
           nivel: Value(infoNova.nivel),
-          rank: Value(rankParaNivel(infoNova.nivel)),
         ),
       );
 
+      // O rank não acompanha o nível: só muda pelo exame de rank.
       return XpGainResult(
         xpGanho: quantidade,
         nivelAnterior: infoAnterior.nivel,
         novoNivel: infoNova.nivel,
-        rankAnterior: rankParaNivel(infoAnterior.nivel),
-        novoRank: rankParaNivel(infoNova.nivel),
+        rankAnterior: atual.rank,
+        novoRank: atual.rank,
       );
     });
+  }
+
+  @override
+  Future<int> removeXp(int quantidade) {
+    return _db.transaction(() async {
+      final userId = await _ensureCurrentUserId();
+      final atual = await (_db.select(_db.users)
+            ..where((u) => u.id.equals(userId)))
+          .getSingle();
+
+      final piso = _levelCurve.xpNoInicioDoNivel(atual.nivel);
+      final novoXp =
+          (atual.xp - quantidade) < piso ? piso : atual.xp - quantidade;
+      final perdido = atual.xp - novoXp;
+      if (perdido > 0) {
+        await (_db.update(_db.users)..where((u) => u.id.equals(userId)))
+            .write(UsersCompanion(xp: Value(novoXp)));
+      }
+      return perdido < 0 ? 0 : perdido;
+    });
+  }
+
+  @override
+  Future<void> setRank(String rank) async {
+    final userId = await _ensureCurrentUserId();
+    await (_db.update(_db.users)..where((u) => u.id.equals(userId)))
+        .write(UsersCompanion(rank: Value(rank)));
   }
 
   @override

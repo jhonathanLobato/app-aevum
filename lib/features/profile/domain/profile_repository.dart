@@ -8,7 +8,17 @@ abstract class ProfileRepository {
   Stream<UserProfile?> watchCurrentUser();
 
   /// Adiciona XP ao usuário atual, recalculando nível e rank.
+  /// Soma XP e recalcula o nível. O RANK não muda aqui: ele só sobe ao
+  /// passar no exame de rank (ver [setRank]).
   Future<XpGainResult> addXp(int quantidade);
+
+  /// Tira até [quantidade] de XP, sem nunca ficar abaixo do início do nível
+  /// atual (não cai de nível; o rank nunca cai). Retorna o XP realmente
+  /// perdido.
+  Future<int> removeXp(int quantidade);
+
+  /// Define o rank (usado só pelo exame de rank aprovado).
+  Future<void> setRank(String rank);
 
   /// Atualiza os campos de personalização informados; campos nulos mantêm
   /// o valor atual. Cria o perfil se ele ainda não existir.

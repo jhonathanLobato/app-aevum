@@ -6,6 +6,10 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
 import '../features/achievements/data/tables/achievement_table.dart';
+import '../features/daily/data/tables/daily_tables.dart';
+import '../features/daily/domain/daily_values.dart';
+import '../features/rank_exam/data/tables/rank_exam_table.dart';
+import 'default_library.dart';
 import '../features/activities/data/tables/sport_activity_table.dart';
 import '../features/activities/domain/sport_activity.dart';
 import '../features/achievements/domain/achievement.dart';
@@ -40,14 +44,23 @@ part 'app_database.g.dart';
   SportActivities,
   FinishedExercises,
   SetDrafts,
+  ScheduleDays,
+  DailyEntries,
+  DailyDays,
+  RankExams,
 ])
 class AppDatabase extends _$AppDatabase {
-  AppDatabase() : super(_openConnection());
+  AppDatabase()
+      : _semearBiblioteca = true,
+        super(_openConnection());
 
-  AppDatabase.forTesting(super.executor);
+  AppDatabase.forTesting(super.executor) : _semearBiblioteca = false;
+
+  /// Só o app real cria a biblioteca padrão (os testes começam vazios).
+  final bool _semearBiblioteca;
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -60,9 +73,29 @@ class AppDatabase extends _$AppDatabase {
           if (from < 3) await m.createTable(finishedExercises);
           // v4: rascunhos de carga/repetições do treino em andamento.
           if (from < 4) await m.createTable(setDrafts);
+          if (from < 5) {
+            // v5: modalidades unificadas e fim da meta de séries/reps.
+            await customStatement(
+                "UPDATE sport_activities SET tipo = 'corridaCaminhada' WHERE tipo IN ('corrida', 'caminhada')");
+            await customStatement(
+                "UPDATE sport_activities SET tipo = 'muayThaiBoxe' WHERE tipo IN ('boxe', 'muayThai')");
+            await m.alterTable(TableMigration(workoutTemplateExercises));
+            // Missão diária nova (flexões/abdominais/km), programação
+            // semanal e exame de rank. A missão diária antiga ("complete seu
+            // treino") deixa de existir.
+            await m.createTable(scheduleDays);
+            await m.createTable(dailyEntries);
+            await m.createTable(dailyDays);
+            await m.createTable(rankExams);
+            await customStatement(
+                "UPDATE missions SET status = 'expirada' WHERE tipo = 'diaria' AND status = 'ativa'");
+          }
         },
         beforeOpen: (details) async {
           await customStatement('PRAGMA foreign_keys = ON');
+          if (_semearBiblioteca && (details.wasCreated || details.hadUpgrade)) {
+            await seedDefaultLibraryIfEmpty(this);
+          }
         },
       );
 }

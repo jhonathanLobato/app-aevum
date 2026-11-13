@@ -13,13 +13,9 @@ import '../../domain/workout_session.dart';
 
 /// "SÉRIES REGISTRADAS" do exercício atual, direto de `treinos.tsx`.
 ///
-/// Além das séries já registradas (reais, vindas da sessão), mostra
-/// linhas de "série planejada" quando o treino tem uma meta de séries
-/// real ([seriesAlvo], do template) maior do que o que já foi registrado
-/// — diferenciadas visualmente (ver seção 7 da Fase 6), sem inventar
-/// carga/reps pra elas.
+/// Lista as séries já registradas (reais, vindas da sessão).
 ///
-/// Fase 9 (feedback de série): quando uma nova série real é registrada, sua
+/// Feedback de série: quando uma nova série real é registrada, sua
 /// linha entra com um fade+slide curto (via [SystemEntrance], chaveado pelo
 /// `id` da série — só a linha nova de fato monta um `State` novo) e fica com
 /// a borda em destaque por [SystemDurations.setHighlight] antes de voltar ao
@@ -30,11 +26,9 @@ class WorkoutSetsPanel extends StatefulWidget {
   const WorkoutSetsPanel({
     super.key,
     required this.series,
-    required this.seriesAlvo,
   });
 
   final List<SetEntryRecord> series;
-  final int? seriesAlvo;
 
   @override
   State<WorkoutSetsPanel> createState() => _WorkoutSetsPanelState();
@@ -66,14 +60,10 @@ class _WorkoutSetsPanelState extends State<WorkoutSetsPanel> {
   @override
   Widget build(BuildContext context) {
     final series = widget.series;
-    final seriesAlvo = widget.seriesAlvo;
-    final planejadasRestantes = seriesAlvo != null && seriesAlvo > series.length
-        ? seriesAlvo - series.length
-        : 0;
 
     return SystemPanel(
       title: 'SÉRIES REGISTRADAS',
-      child: series.isEmpty && planejadasRestantes == 0
+      child: series.isEmpty
           ? const SystemEmptyState(
               message: 'NENHUMA SÉRIE REGISTRADA NESTE EXERCÍCIO')
           : Column(
@@ -89,16 +79,6 @@ class _WorkoutSetsPanelState extends State<WorkoutSetsPanel> {
                       registrada: true,
                       destacada: series[i].id == _destacarSetId,
                     ),
-                  ),
-                ],
-                for (var i = 0; i < planejadasRestantes; i++) ...[
-                  if (series.isNotEmpty || i > 0)
-                    const SizedBox(height: SystemSpacing.xs),
-                  _SetRow(
-                    numero: series.length + i + 1,
-                    texto: '—',
-                    registrada: false,
-                    destacada: false,
                   ),
                 ],
               ],

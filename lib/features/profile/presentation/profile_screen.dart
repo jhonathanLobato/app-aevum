@@ -14,6 +14,7 @@ import '../../../design_system/system_text_styles.dart';
 import '../domain/app_theme.dart';
 import '../domain/avatar_catalog.dart';
 import '../domain/player_class.dart';
+import 'avatar_icons.dart';
 import 'profile_providers.dart';
 
 /// Perfil do jogador (nome, título, avatar, classe, tema), redesenhado na
@@ -115,7 +116,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         semanticLabel: 'Avatar $chave',
                         onTap: () => setState(() => _avatar = chave),
                         child: Icon(
-                          _iconeDoAvatar(chave),
+                          iconeDoAvatar(chave),
                           size: 22,
                           color: _avatar == chave
                               ? SystemPalette.primary
@@ -187,24 +188,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         ),
       ),
     );
-  }
-
-  IconData _iconeDoAvatar(String chave) {
-    switch (chave) {
-      case 'sword':
-        return Icons.gavel;
-      case 'shield':
-        return Icons.shield;
-      case 'bolt':
-        return Icons.bolt;
-      case 'star':
-        return Icons.star;
-      case 'flame':
-        return Icons.local_fire_department;
-      case 'person':
-      default:
-        return Icons.person;
-    }
   }
 }
 

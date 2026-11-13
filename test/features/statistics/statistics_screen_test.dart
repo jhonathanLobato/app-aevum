@@ -80,9 +80,10 @@ void main() {
 
       await _pumpScreen(tester, db);
 
-      expect(find.text('ASTRA'), findsOneWidget);
-      expect(find.byType(RankBadge), findsOneWidget);
-      expect(find.text('LV. 1'), findsOneWidget);
+      // A identidade (nome/rank/nível) fica na tela Sistema, não aqui.
+      expect(find.text('ASTRA'), findsNothing);
+      expect(find.byType(RankBadge), findsNothing);
+      expect(find.text('RELATÓRIO SEMANAL'), findsOneWidget);
       expect(find.text('ATRIBUTOS'), findsOneWidget);
       expect(find.text('FORÇA'), findsOneWidget);
       expect(find.text('RESISTÊNCIA'), findsOneWidget);
@@ -106,7 +107,7 @@ void main() {
 
       await _pumpScreen(tester, db);
 
-      expect(find.text('TREINOS'), findsOneWidget);
+      expect(find.text('TREINOS'), findsWidgets);
       // SystemStatBox sempre renderiza o rótulo em maiúsculas.
       expect(find.text('PRS'), findsOneWidget);
       expect(find.text('VOLUME'), findsOneWidget);

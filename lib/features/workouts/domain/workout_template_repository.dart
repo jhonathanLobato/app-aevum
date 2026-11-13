@@ -9,12 +9,7 @@ abstract class WorkoutTemplateRepository {
 
   Future<void> delete(int id);
 
-  Future<void> addExercise(
-    int templateId,
-    int exerciseId, {
-    int? seriesAlvo,
-    int? repeticoesAlvo,
-  });
+  Future<void> addExercise(int templateId, int exerciseId);
 
   Future<void> removeExercise(int templateExerciseId);
 

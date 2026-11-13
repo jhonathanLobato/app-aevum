@@ -9,6 +9,15 @@ class LevelCurve {
   /// XP necessário para sair do [nivel] atual e alcançar o próximo.
   int xpParaProximoNivel(int nivel) => (1000 * pow(nivel, 1.2)).round();
 
+  /// XP total acumulado necessário para ENTRAR no [nivel] (início do nível).
+  int xpNoInicioDoNivel(int nivel) {
+    var total = 0;
+    for (var k = 1; k < nivel; k++) {
+      total += xpParaProximoNivel(k);
+    }
+    return total;
+  }
+
   LevelInfo calcularNivel(int xpTotal) {
     var nivel = 1;
     var xpRestante = xpTotal;
@@ -54,6 +63,34 @@ String rankParaNivel(int nivel) {
 }
 
 /// Ordem de evolução dos ranks (seção 10), do mais baixo ao mais alto.
+/// Nível mínimo para liberar o exame que leva ao [rank] (curva de ranks
+/// original: E=10, D=20, C=30, B=40, A=50, S=60).
+int nivelMinimoDoRank(String rank) {
+  switch (rank.toUpperCase()) {
+    case 'E':
+      return 10;
+    case 'D':
+      return 20;
+    case 'C':
+      return 30;
+    case 'B':
+      return 40;
+    case 'A':
+      return 50;
+    case 'S':
+      return 60;
+    default:
+      return 1;
+  }
+}
+
+/// Próximo rank depois de [atual] (`null` se já é o último).
+String? proximoRank(String atual) {
+  final i = _ordemDosRanks.indexOf(atual.toUpperCase());
+  if (i == -1 || i + 1 >= _ordemDosRanks.length) return null;
+  return _ordemDosRanks[i + 1];
+}
+
 const _ordemDosRanks = ['F', 'E', 'D', 'C', 'B', 'A', 'S'];
 
 /// `true` se [atual] já alcançou (ou superou) o rank [minimo] — usado pelo

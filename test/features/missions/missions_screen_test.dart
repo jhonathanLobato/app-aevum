@@ -1,12 +1,12 @@
+import 'package:drift/drift.dart' show Value;
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gym_system/database/app_database.dart' hide Mission;
 import 'package:gym_system/database/database_provider.dart';
-import 'package:gym_system/features/missions/domain/mission.dart';
-import 'package:gym_system/features/missions/presentation/mission_providers.dart';
 import 'package:gym_system/features/missions/presentation/missions_screen.dart';
+import 'package:gym_system/features/profile/data/profile_repository_impl.dart';
 import 'package:gym_system/features/workouts/presentation/workout_session_providers.dart';
 
 AppDatabase _memoryDb() => AppDatabase.forTesting(NativeDatabase.memory());
@@ -36,47 +36,91 @@ Future<void> _finish(WidgetTester tester, AppDatabase db) async {
 }
 
 void main() {
-  testWidgets(
-      'mostra a missão diária e a semanal com progresso e recompensa real',
+  Future<void> programar(AppDatabase db, int treinos) async {
+    for (var dia = 1; dia <= treinos; dia++) {
+      await db
+          .into(db.scheduleDays)
+          .insert(ScheduleDaysCompanion.insert(weekday: Value(dia)));
+    }
+  }
+
+  testWidgets('mostra a missão diária no topo e a semanal da programação',
       (tester) async {
     final db = _memoryDb();
+    await programar(db, 4);
     await _pump(tester, db);
 
-    expect(find.text('DIÁRIA'), findsOneWidget);
-    expect(find.text('Missão diária'), findsOneWidget);
-    expect(find.text('Complete seu treino.'), findsOneWidget);
-    expect(find.text('0 / 1'), findsOneWidget);
-    expect(find.text('+50 XP'), findsOneWidget);
+    expect(find.text('MISSÃO DIÁRIA'), findsOneWidget);
+    expect(find.text('FLEXÕES'), findsOneWidget);
+    expect(find.text('Complete seu treino.'), findsNothing);
 
     expect(find.text('SEMANAL'), findsOneWidget);
     expect(find.text('Missão semanal'), findsOneWidget);
+    expect(find.text('Conclua os 4 treinos programados da semana.'),
+        findsOneWidget);
     expect(find.text('0 / 4'), findsOneWidget);
     expect(find.text('+250 XP'), findsOneWidget);
 
     await _finish(tester, db);
   });
 
-  testWidgets(
-      'avançar o progresso real reflete no card (0/1 → 1/1, ícone de %)',
+  testWidgets('semanal concluída vai para "concluídas recentemente"',
       (tester) async {
     final db = _memoryDb();
+    await programar(db, 1);
     final container = ProviderContainer(
         overrides: [appDatabaseProvider.overrideWithValue(db)]);
-    await container.read(workoutSessionRepositoryProvider).finish(
-          await container
-              .read(workoutSessionRepositoryProvider)
-              .start(nome: 'Treino livre'),
-          duracao: const Duration(minutes: 10),
-        );
+    final repo = container.read(workoutSessionRepositoryProvider);
+    await repo.finish(await repo.start(nome: 'Treino livre'),
+        duracao: const Duration(minutes: 10));
     container.dispose();
 
     await _pump(tester, db);
 
-    // A diária foi concluída pelo treino finalizado acima: não aparece
-    // mais como ativa (1/1 seria o "ainda ativo"), e sim na seção de
-    // concluídas recentemente.
     expect(find.text('CONCLUÍDAS RECENTEMENTE'), findsOneWidget);
     expect(find.byIcon(Icons.check), findsOneWidget);
+
+    await _finish(tester, db);
+  });
+
+  testWidgets('sem treinos programados, avisa que não há missão semanal',
+      (tester) async {
+    final db = _memoryDb();
+    await _pump(tester, db);
+
+    expect(find.text('MISSÃO DIÁRIA'), findsOneWidget);
+    expect(find.text('SEM MISSÃO SEMANAL'), findsOneWidget);
+    expect(find.text('EXAME DE RANK'), findsNothing);
+
+    await _finish(tester, db);
+  });
+
+  testWidgets('mostra o exame de rank ativo com os requisitos', (tester) async {
+    final db = _memoryDb();
+    await DriftProfileRepository(db).addXp(1); // cria o usuário
+    await db.into(db.rankExams).insert(RankExamsCompanion.insert(
+        rankAlvo: 'E', inicio: DateTime.now(), prazoDias: 21));
+    await _pump(tester, db);
+
+    await tester.ensureVisible(find.text('EXAME DE RANK'));
+    expect(find.text('EXAME DE RANK'), findsOneWidget);
+    expect(find.text('0 / 12'), findsOneWidget); // treinos do exame F→E
+    expect(find.text('ESCOLHER 3 ATIVIDADES EXTRAS'), findsOneWidget);
+
+    await _finish(tester, db);
+  });
+
+  testWidgets('penalidade pendente aparece como card vermelho', (tester) async {
+    final db = _memoryDb();
+    await db.into(db.dailyDays).insert(DailyDaysCompanion.insert(
+          dia: '2026-01-01',
+          processado: const Value(true),
+          penalidadeXp: const Value(100),
+          avisado: const Value(false),
+        ));
+    await _pump(tester, db);
+
+    expect(find.textContaining('PENALIDADE: -100 XP'), findsOneWidget);
 
     await _finish(tester, db);
   });
@@ -106,29 +150,6 @@ void main() {
     expect(find.text('DESAFIOS'), findsOneWidget);
     expect(find.textContaining('Supino reto'), findsWidgets);
     expect(find.text('0 / 33'), findsOneWidget);
-
-    await _finish(tester, db);
-  });
-
-  testWidgets('sem nenhuma missão (provider sobrescrito) mostra estado vazio',
-      (tester) async {
-    final db = _memoryDb();
-    tester.view.physicalSize = const Size(390, 844);
-    tester.view.devicePixelRatio = 1.0;
-
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          appDatabaseProvider.overrideWithValue(db),
-          activeMissionsProvider
-              .overrideWith((ref) => Stream.value(const <Mission>[])),
-        ],
-        child: const MaterialApp(home: MissionsScreen()),
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    expect(find.text('NENHUMA MISSÃO ATIVA'), findsOneWidget);
 
     await _finish(tester, db);
   });

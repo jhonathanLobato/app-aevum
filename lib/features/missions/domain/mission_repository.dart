@@ -9,13 +9,13 @@ abstract class MissionRepository {
   /// [watchActive], que só retorna o que ainda está ativo.
   Stream<List<Mission>> watchRecentHistory();
 
-  /// Garante que existe uma missão diária e uma semanal ativas para o
-  /// período atual (hoje / esta semana), criando-as se necessário e
-  /// expirando as de períodos anteriores que não foram concluídas.
+  /// Garante a missão semanal desta semana, alinhada à programação semanal
+  /// (objetivo = nº de dias de treino programados; sem programação não há
+  /// missão semanal). Expira a de semanas anteriores não concluída.
   Future<void> ensureRecurringMissions();
 
-  /// Chamado quando um treino é finalizado: avança a missão diária e a
-  /// semanal. Retorna as que foram concluídas nesta chamada.
+  /// Chamado quando um treino de academia é finalizado: avança a missão
+  /// semanal (tudo ou nada). Retorna as concluídas nesta chamada.
   Future<List<Mission>> registrarTreinoConcluido();
 
   /// Chamado quando um novo recorde de carga é batido: conclui o desafio

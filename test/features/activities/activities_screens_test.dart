@@ -90,7 +90,7 @@ Finder _campo(String chave) => find.descendant(
     of: find.byKey(Key(chave)), matching: find.byType(TextField));
 
 void main() {
-  testWidgets('aba mostra as 8 modalidades fixas, sem "Outra" nem adicionar',
+  testWidgets('aba mostra as 7 modalidades fixas, sem "Outra" nem adicionar',
       (tester) async {
     final db = _memoryDb();
     await _pump(tester, db);
@@ -98,11 +98,10 @@ void main() {
     expect(find.text('ATIVIDADES'), findsOneWidget);
     expect(find.text('REGISTRO ESPORTIVO'), findsOneWidget);
     for (final nome in [
-      'CORRIDA',
+      'CORRIDA/CAMINHADA',
       'CICLISMO',
-      'CAMINHADA',
-      'BOXE',
-      'MUAY THAI',
+      'MUAY THAI/BOXE',
+      'JIU JITSU',
       'BASQUETE',
       'FUTEBOL',
       'SKATE',
@@ -112,7 +111,7 @@ void main() {
     expect(find.textContaining('OUTRA'), findsNothing);
     expect(find.byIcon(Icons.add), findsNothing);
 
-    await tester.tap(find.text('CORRIDA'));
+    await tester.tap(find.text('CORRIDA/CAMINHADA'));
     await _aguardar(tester);
     expect(find.text('ADICIONAR REGISTRO'), findsOneWidget);
 
@@ -123,14 +122,14 @@ void main() {
       (tester) async {
     final db = _memoryDb();
     await _pump(tester, db);
-    await tester.tap(find.text('BOXE'));
+    await tester.tap(find.text('MUAY THAI/BOXE'));
     await _aguardar(tester);
 
     expect(find.text('ADICIONAR REGISTRO'), findsOneWidget);
     expect(find.text('HISTÓRICO'), findsOneWidget);
     expect(find.text('NENHUMA ATIVIDADE REGISTRADA'), findsOneWidget);
-    expect(
-        find.text('Seus registros de Boxe aparecerão aqui.'), findsOneWidget);
+    expect(find.text('Seus registros de Muay Thai/Boxe aparecerão aqui.'),
+        findsOneWidget);
 
     await _finish(tester, db);
   });
@@ -140,13 +139,14 @@ void main() {
     final db = _memoryDb();
     final repo = DriftSportActivityRepository(db);
     for (var dia = 1; dia <= 5; dia++) {
-      await repo.create(_in(SportType.corrida, dia: dia, km: 5, duracao: 30));
+      await repo.create(
+          _in(SportType.corridaCaminhada, dia: dia, km: 5, duracao: 30));
     }
     // Outra modalidade não pode aparecer na corrida.
     await repo.create(_in(SportType.ciclismo, dia: 20, km: 30, duracao: 60));
 
     await _pump(tester, db);
-    await tester.tap(find.text('CORRIDA'));
+    await tester.tap(find.text('CORRIDA/CAMINHADA'));
     await _aguardar(tester);
 
     expect(find.byType(SportActivityTile), findsNWidgets(3));
@@ -171,7 +171,7 @@ void main() {
       (tester) async {
     final db = _memoryDb();
     await _pump(tester, db);
-    await tester.tap(find.text('CORRIDA'));
+    await tester.tap(find.text('CORRIDA/CAMINHADA'));
     await _aguardar(tester);
     await tester.tap(find.text('ADICIONAR REGISTRO'));
     await _aguardar(tester);
@@ -204,7 +204,7 @@ void main() {
       await _aguardar(tester);
     }
 
-    await abrirForm('BOXE');
+    await abrirForm('MUAY THAI/BOXE');
     expect(find.byKey(const Key('atividade_rounds_field')), findsOneWidget);
     expect(find.byKey(const Key('atividade_distancia_field')), findsNothing);
     await tester.tap(find.byTooltip('Voltar'));
@@ -223,7 +223,7 @@ void main() {
   testWidgets('não salva com duração vazia e mostra o erro', (tester) async {
     final db = _memoryDb();
     await _pump(tester, db);
-    await tester.tap(find.text('CORRIDA'));
+    await tester.tap(find.text('CORRIDA/CAMINHADA'));
     await _aguardar(tester);
     await tester.tap(find.text('ADICIONAR REGISTRO'));
     await _aguardar(tester);

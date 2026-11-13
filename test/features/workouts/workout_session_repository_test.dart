@@ -1,4 +1,4 @@
-import 'package:drift/drift.dart' show BooleanExpressionOperators;
+import 'package:drift/drift.dart' show BooleanExpressionOperators, Value;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gym_system/database/app_database.dart';
@@ -347,13 +347,28 @@ void main() {
     final primeiraVez =
         await repo.finish(sessionId, duracao: const Duration(minutes: 10));
     expect(primeiraVez, isNotNull);
-    // 100 de finalizar o treino + 50 da missão diária (objetivo 1, já batido).
-    expect(primeiraVez!.xpGanho.xpGanho, 150);
-    expect(primeiraVez.missoesConcluidas, hasLength(1));
-    expect(primeiraVez.missoesConcluidas.single.tipo, MissionType.diaria);
+    // Só os 100 de finalizar o treino: sem programação não há missão semanal
+    // e a missão diária não depende de treino de academia.
+    expect(primeiraVez!.xpGanho.xpGanho, 100);
+    expect(primeiraVez.missoesConcluidas, isEmpty);
 
     final segundaVez =
         await repo.finish(sessionId, duracao: const Duration(minutes: 20));
     expect(segundaVez, isNull);
+  });
+
+  test('finalizar o último treino programado da semana conclui a semanal',
+      () async {
+    await db
+        .into(db.scheduleDays)
+        .insert(ScheduleDaysCompanion.insert(weekday: const Value(1)));
+    final sessionId = await repo.start(templateId: treinoId, nome: 'Treino A');
+
+    final r =
+        await repo.finish(sessionId, duracao: const Duration(minutes: 10));
+
+    // 100 do treino + 50 da semanal de 1 treino programado.
+    expect(r!.xpGanho.xpGanho, 150);
+    expect(r.missoesConcluidas.single.tipo, MissionType.semanal);
   });
 }

@@ -1,3 +1,4 @@
+import 'package:drift/drift.dart' show Value;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gym_system/database/app_database.dart';
@@ -22,45 +23,91 @@ void main() {
     await db.close();
   });
 
-  test('cria a missão diária e a semanal na primeira vez', () async {
+  Future<void> programar(int treinos) async {
+    await db.delete(db.scheduleDays).go();
+    for (var dia = 1; dia <= treinos; dia++) {
+      await db
+          .into(db.scheduleDays)
+          .insert(ScheduleDaysCompanion.insert(weekday: Value(dia)));
+    }
+  }
+
+  test('sem treinos programados não há missão semanal nem diária antiga',
+      () async {
     await repo.ensureRecurringMissions();
 
-    final ativas = await repo.watchActive().first;
-    expect(ativas.map((m) => m.tipo).toSet(), {
-      MissionType.diaria,
-      MissionType.semanal,
-    });
-    expect(ativas.firstWhere((m) => m.tipo == MissionType.diaria).objetivo, 1);
-    expect(ativas.firstWhere((m) => m.tipo == MissionType.semanal).objetivo, 4);
+    expect(await repo.watchActive().first, isEmpty);
+    expect(await repo.registrarTreinoConcluido(), isEmpty);
+    expect(
+        await (db.select(db.missions)
+              ..where((m) => m.tipo.equalsValue(MissionType.diaria)))
+            .get(),
+        isEmpty);
   });
 
-  test('não duplica missões já ativas no mesmo período', () async {
+  test('a missão semanal segue a programação: objetivo e XP da tabela',
+      () async {
+    const esperado = {1: 50, 2: 100, 3: 150, 4: 250, 5: 300, 6: 350, 7: 400};
+    for (final e in esperado.entries) {
+      await db.delete(db.missions).go();
+      await programar(e.key);
+      await repo.ensureRecurringMissions();
+
+      final semanal = (await repo.watchActive().first).single;
+      expect(semanal.tipo, MissionType.semanal);
+      expect(semanal.objetivo, e.key, reason: '${e.key} treinos');
+      expect(semanal.recompensaXp, e.value, reason: '${e.key} treinos');
+    }
+  });
+
+  test('não duplica a missão semanal da mesma semana', () async {
+    await programar(3);
     await repo.ensureRecurringMissions();
     await repo.ensureRecurringMissions();
 
     final ativas = await repo.watchActive().first;
-    expect(ativas.where((m) => m.tipo == MissionType.diaria), hasLength(1));
     expect(ativas.where((m) => m.tipo == MissionType.semanal), hasLength(1));
   });
 
-  test('completar um treino avança a missão diária até concluí-la', () async {
-    final concluidas = await repo.registrarTreinoConcluido();
+  test('tudo ou nada: só conclui ao fechar todos os treinos programados',
+      () async {
+    await programar(3);
+    for (var i = 0; i < 2; i++) {
+      expect(await repo.registrarTreinoConcluido(), isEmpty);
+    }
+    final parcial = (await repo.watchActive().first).single;
+    expect(parcial.progresso, 2);
 
+    final concluidas = await repo.registrarTreinoConcluido();
     expect(concluidas, hasLength(1));
-    expect(concluidas.single.tipo, MissionType.diaria);
+    expect(concluidas.single.tipo, MissionType.semanal);
     expect(concluidas.single.status, MissionStatus.concluida);
+    expect(concluidas.single.recompensaXp, 150);
   });
 
-  test('missão semanal só conclui depois do número necessário de treinos',
+  test('treinos além do programado não concedem o XP da semanal de novo',
       () async {
-    for (var i = 0; i < 3; i++) {
-      final concluidas = await repo.registrarTreinoConcluido();
-      expect(concluidas.any((m) => m.tipo == MissionType.semanal), isFalse);
-    }
+    await programar(2);
+    await repo.registrarTreinoConcluido();
+    expect(await repo.registrarTreinoConcluido(), hasLength(1));
+    expect(await repo.registrarTreinoConcluido(), isEmpty);
 
-    final ativas = await repo.watchActive().first;
-    final semanal = ativas.firstWhere((m) => m.tipo == MissionType.semanal);
-    expect(semanal.progresso, 3);
+    final semanais = await (db.select(db.missions)
+          ..where((m) => m.tipo.equalsValue(MissionType.semanal)))
+        .get();
+    expect(semanais, hasLength(1));
+    expect(semanais.single.status, MissionStatus.concluida);
+  });
+
+  test('mudar a programação no meio da semana ajusta objetivo e XP', () async {
+    await programar(4);
+    await repo.ensureRecurringMissions();
+    await programar(6);
+    await repo.ensureRecurringMissions();
+
+    final semanal = (await repo.watchActive().first).single;
+    expect(semanal.objetivo, 6);
+    expect(semanal.recompensaXp, 350);
   });
 
   test('primeiro recorde de carga cria um desafio para o próximo', () async {
@@ -79,55 +126,18 @@ void main() {
     expect(desafio.objetivo, 32);
   });
 
-  test(
-      'completar vários treinos no mesmo dia não concede o XP da diária mais de uma vez',
-      () async {
-    final primeira = await repo.registrarTreinoConcluido();
-    final segunda = await repo.registrarTreinoConcluido();
-    final terceira = await repo.registrarTreinoConcluido();
-
-    expect(primeira.where((m) => m.tipo == MissionType.diaria), hasLength(1));
-    expect(segunda.where((m) => m.tipo == MissionType.diaria), isEmpty);
-    expect(terceira.where((m) => m.tipo == MissionType.diaria), isEmpty);
-
-    final diarias = await (db.select(db.missions)
-          ..where((m) => m.tipo.equalsValue(MissionType.diaria)))
-        .get();
-    expect(diarias, hasLength(1));
-    expect(diarias.single.status, MissionStatus.concluida);
-  });
-
-  test(
-      'completar treinos além da meta semanal não concede o XP da semanal mais de uma vez',
-      () async {
-    for (var i = 0; i < 4; i++) {
-      await repo.registrarTreinoConcluido();
-    }
-    final concluidasNaQuarta =
-        (await repo.registrarTreinoConcluido()); // 5º treino da semana
-    // já tinha concluído a semanal no 4º treino; o 5º não deve reconcluir.
-
-    final semanais = await (db.select(db.missions)
-          ..where((m) => m.tipo.equalsValue(MissionType.semanal)))
-        .get();
-    expect(semanais, hasLength(1));
-    expect(semanais.single.status, MissionStatus.concluida);
-    expect(semanais.single.progresso, 4);
-    expect(concluidasNaQuarta.where((m) => m.tipo == MissionType.semanal),
-        isEmpty);
-  });
-
   test('watchRecentHistory mostra missões concluídas, não as ainda ativas',
       () async {
+    await programar(1);
     await repo.registrarTreinoConcluido();
 
     final historico = await repo.watchRecentHistory().first;
     expect(historico, hasLength(1));
-    expect(historico.single.tipo, MissionType.diaria);
+    expect(historico.single.tipo, MissionType.semanal);
     expect(historico.single.status, MissionStatus.concluida);
 
     final ativas = await repo.watchActive().first;
-    expect(ativas.any((m) => m.tipo == MissionType.diaria), isFalse);
+    expect(ativas.any((m) => m.tipo == MissionType.semanal), isFalse);
   });
 
   test('bater a meta do desafio conclui e cria o próximo', () async {

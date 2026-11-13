@@ -1,16 +1,23 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../design_system/system_navigation_bar.dart';
+import '../features/daily/presentation/daily_providers.dart';
+import '../features/missions/presentation/mission_providers.dart';
+import '../features/rank_exam/presentation/rank_exam_providers.dart';
 
-/// Casca das 6 áreas principais: o conteúdo da aba atual (um `IndexedStack`
-/// administrado pelo `StatefulShellRoute` do go_router) embaixo, e a
-/// [SystemNavigationBar] fixa abaixo dele.
+/// Casca das 5 áreas principais (Sistema, Treinos, Atividades, Missões e
+/// Status): o conteúdo da aba atual (um `IndexedStack` administrado pelo
+/// `StatefulShellRoute` do go_router) embaixo, e a [SystemNavigationBar]
+/// fixa abaixo dele.
+///
+/// Ao abrir o app, esta casca avalia os dias que passaram (penalidade da
+/// missão diária), garante a missão semanal e sincroniza o exame de rank.
 ///
 /// O índice selecionado mora só em [navigationShell] (estado do próprio
-/// go_router) — esta casca é a única instância da barra de navegação; as 5
-/// telas não sabem da existência umas das outras nem duplicam esse índice.
-class ScaffoldWithNavBar extends StatelessWidget {
+/// go_router).
+class ScaffoldWithNavBar extends ConsumerStatefulWidget {
   const ScaffoldWithNavBar({super.key, required this.navigationShell});
 
   final StatefulNavigationShell navigationShell;
@@ -21,21 +28,42 @@ class ScaffoldWithNavBar extends StatelessWidget {
     SystemNavItem(icon: Icons.directions_run_rounded, label: 'ATIVIDADES'),
     SystemNavItem(icon: Icons.assignment_rounded, label: 'MISSÕES'),
     SystemNavItem(icon: Icons.monitor_heart_rounded, label: 'STATUS'),
-    SystemNavItem(icon: Icons.emoji_events_rounded, label: 'CONQUISTAS'),
   ];
 
   @override
+  ConsumerState<ScaffoldWithNavBar> createState() => _ScaffoldWithNavBarState();
+}
+
+class _ScaffoldWithNavBarState extends ConsumerState<ScaffoldWithNavBar> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _aoAbrir());
+  }
+
+  Future<void> _aoAbrir() async {
+    try {
+      await ref.read(dailyRepositoryProvider).processarVirada();
+      await ref.read(missionRepositoryProvider).ensureRecurringMissions();
+      if (mounted) await sincronizarExame(context, ref);
+    } catch (_) {
+      // Rotina de abertura nunca deve impedir o uso do app.
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final shell = widget.navigationShell;
     return Scaffold(
-      body: navigationShell,
+      body: shell,
       bottomNavigationBar: SystemNavigationBar(
-        items: _items,
-        currentIndex: navigationShell.currentIndex,
-        onTap: (index) => navigationShell.goBranch(
+        items: ScaffoldWithNavBar._items,
+        currentIndex: shell.currentIndex,
+        onTap: (index) => shell.goBranch(
           index,
           // Tocar na aba já ativa volta pro topo dela em vez de empilhar
           // de novo; tocar numa aba diferente preserva o estado dela.
-          initialLocation: index == navigationShell.currentIndex,
+          initialLocation: index == shell.currentIndex,
         ),
       ),
     );

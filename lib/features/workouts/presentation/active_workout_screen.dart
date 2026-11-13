@@ -17,6 +17,7 @@ import '../../missions/presentation/mission_completed_dialog.dart';
 import '../../profile/presentation/level_up_overlay.dart';
 import '../domain/workout_session.dart';
 import '../domain/workout_template.dart';
+import '../../rank_exam/presentation/rank_exam_providers.dart';
 import 'pr_detected_dialog.dart';
 import 'widgets/workout_exercise_header.dart';
 import 'widgets/workout_new_set_panel.dart';
@@ -226,6 +227,7 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
         novoRank: resultado.xpGanho.novoRank,
       );
     }
+    if (resultado != null && mounted) await sincronizarExame(context, ref);
   }
 
   @override
@@ -280,8 +282,6 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                       id: e.exerciseId,
                       nome: e.exerciseNome,
                       grupoMuscular: e.grupoMuscular,
-                      seriesAlvo: e.seriesAlvo,
-                      repeticoesAlvo: e.repeticoesAlvo,
                     ))
                 .toList()
             : _exerciciosUnicos(session.series)
@@ -369,14 +369,11 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
           index: index,
           total: total,
           hasSeries: hasSeries,
-          seriesAlvo: exercicio.seriesAlvo,
-          repeticoesAlvo: exercicio.repeticoesAlvo,
           onAnterior: index > 0 ? () => _irPara(index - 1, total) : null,
           onProximo: index < total - 1 ? () => _irPara(index + 1, total) : null,
         ),
         const SizedBox(height: SystemSpacing.lg),
-        WorkoutSetsPanel(
-            series: seriesDoExercicio, seriesAlvo: exercicio.seriesAlvo),
+        WorkoutSetsPanel(series: seriesDoExercicio),
         const SizedBox(height: SystemSpacing.lg),
         if (emAndamento)
           WorkoutNewSetPanel(
@@ -475,15 +472,11 @@ class _ExercisePlan {
     required this.id,
     required this.nome,
     this.grupoMuscular = '',
-    this.seriesAlvo,
-    this.repeticoesAlvo,
   });
 
   final int id;
   final String nome;
   final String grupoMuscular;
-  final int? seriesAlvo;
-  final int? repeticoesAlvo;
 }
 
 class _SetInputControllers {

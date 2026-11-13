@@ -8,7 +8,6 @@ import 'package:gym_system/database/database_provider.dart';
 import 'package:gym_system/features/workouts/data/workout_template_repository_impl.dart';
 import 'package:gym_system/features/workouts/domain/workout_session.dart';
 import 'package:gym_system/features/workouts/presentation/active_workout_screen.dart';
-import 'package:gym_system/features/workouts/presentation/workout_form_screen.dart';
 import 'package:gym_system/features/workouts/presentation/workout_template_detail_screen.dart';
 import 'package:gym_system/features/workouts/presentation/workouts_screen.dart';
 
@@ -44,17 +43,8 @@ GoRouter _router() => GoRouter(
               const Scaffold(body: Text('EXERCICIOS_DESTINO')),
         ),
         GoRoute(
-          path: '/workouts/new',
-          builder: (context, state) => const WorkoutFormScreen(),
-        ),
-        GoRoute(
           path: '/workouts/:id',
           builder: (context, state) => WorkoutTemplateDetailScreen(
-              templateId: int.parse(state.pathParameters['id']!)),
-        ),
-        GoRoute(
-          path: '/workouts/:id/edit',
-          builder: (context, state) => WorkoutFormScreen(
               templateId: int.parse(state.pathParameters['id']!)),
         ),
         GoRoute(
@@ -131,11 +121,12 @@ void main() {
 
     await tester.tap(find.text('NOVO TREINO'));
     await _aguardar(tester);
-    expect(find.text('CRIAR PROTOCOLO'), findsOneWidget);
+    // Criar treino agora é um diálogo, não uma tela.
+    expect(find.byKey(const Key('workout_nome_field')), findsOneWidget);
 
     await tester.enterText(find.byType(TextField), 'Treino A');
     await tester.pump();
-    await tester.tap(find.text('CRIAR TREINO'));
+    await tester.tap(find.text('SALVAR'));
     await _aguardar(tester);
 
     // Navegou automaticamente pro detalhe do treino criado.
@@ -268,12 +259,12 @@ void main() {
 
     await tester.tap(find.byTooltip('Editar treino'));
     await _aguardar(tester);
-    expect(find.text('EDITAR PROTOCOLO'), findsOneWidget);
+    expect(find.text('EDITAR TREINO'), findsOneWidget);
 
     final campo = find.byType(TextField);
     await tester.enterText(campo, 'Treino B');
     await tester.pump();
-    await tester.tap(find.text('SALVAR ALTERAÇÕES'));
+    await tester.tap(find.text('SALVAR'));
     await _aguardar(tester);
 
     expect(find.text('TREINO B'), findsOneWidget);

@@ -108,8 +108,8 @@ const kAchievementCatalog = [
   AchievementDefinition(
     chave: 'rank_e',
     nome: 'Rank E',
-    descricao: 'Alcance o Rank E no sistema.',
+    descricao: 'Passe no exame de rank e alcance o Rank E.',
     icone: 'military_tech',
-    requisito: 'Rank E ou superior',
+    requisito: 'Exame de rank aprovado: Rank E ou superior',
   ),
 ];

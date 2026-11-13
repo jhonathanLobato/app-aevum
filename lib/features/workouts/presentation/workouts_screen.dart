@@ -13,6 +13,8 @@ import '../../../design_system/system_spacing.dart';
 import '../../../design_system/system_text_styles.dart';
 import '../domain/workout_template.dart';
 import 'widgets/active_workout_card.dart';
+import 'widgets/week_schedule_panel.dart';
+import 'workout_name_dialog.dart';
 import 'workout_template_providers.dart';
 
 /// Lista de treinos ("Protocolos de Treinamento"), redesenhada na Fase 11 a
@@ -22,6 +24,13 @@ import 'workout_template_providers.dart';
 /// novo foi inventado).
 class WorkoutsScreen extends ConsumerWidget {
   const WorkoutsScreen({super.key});
+
+  Future<void> _novoTreino(BuildContext context, WidgetRef ref) async {
+    final nome = await showWorkoutNameDialog(context);
+    if (nome == null) return;
+    final id = await ref.read(workoutTemplateRepositoryProvider).create(nome);
+    if (context.mounted) context.push('/workouts/$id');
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -34,12 +43,14 @@ class WorkoutsScreen extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           const ActiveWorkoutCard(),
+          const WeekSchedulePanel(),
+          const SizedBox(height: SystemSpacing.lg),
           SystemButton(
             label: 'Novo treino',
             variant: SystemButtonVariant.action,
             icon: const Icon(Icons.add,
                 size: 16, color: SystemPalette.foreground),
-            onPressed: () => context.push('/workouts/new'),
+            onPressed: () => _novoTreino(context, ref),
           ),
           const SizedBox(height: SystemSpacing.sm),
           SystemButton(

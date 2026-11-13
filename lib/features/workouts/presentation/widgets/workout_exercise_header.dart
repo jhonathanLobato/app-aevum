@@ -23,8 +23,6 @@ class WorkoutExerciseHeader extends ConsumerWidget {
     required this.index,
     required this.total,
     required this.hasSeries,
-    required this.seriesAlvo,
-    required this.repeticoesAlvo,
     required this.onAnterior,
     required this.onProximo,
   });
@@ -35,8 +33,6 @@ class WorkoutExerciseHeader extends ConsumerWidget {
   final int index;
   final int total;
   final List<bool> hasSeries;
-  final int? seriesAlvo;
-  final int? repeticoesAlvo;
   final VoidCallback? onAnterior;
   final VoidCallback? onProximo;
 
@@ -53,10 +49,6 @@ class WorkoutExerciseHeader extends ConsumerWidget {
       },
       orElse: () => null,
     );
-
-    final meta = (seriesAlvo != null && repeticoesAlvo != null)
-        ? '$seriesAlvo×$repeticoesAlvo'
-        : null;
 
     return SystemPanel(
       glow: true,
@@ -140,24 +132,13 @@ class WorkoutExerciseHeader extends ConsumerWidget {
               ),
             ],
           ),
-          if (prAtual != null || meta != null) ...[
+          if (prAtual != null) ...[
             const SizedBox(height: SystemSpacing.md),
-            Row(
-              children: [
-                if (prAtual != null)
-                  Expanded(
-                    child: SystemStatBox(
-                      label: 'PR ATUAL',
-                      value: '${prAtual.toStringAsFixed(1)} KG',
-                      icon: Icons.emoji_events_outlined,
-                      iconColor: SystemPalette.gold,
-                    ),
-                  ),
-                if (prAtual != null && meta != null)
-                  const SizedBox(width: SystemSpacing.sm),
-                if (meta != null)
-                  Expanded(child: SystemStatBox(label: 'META', value: meta)),
-              ],
+            SystemStatBox(
+              label: 'PR ATUAL',
+              value: '${prAtual.toStringAsFixed(1)} KG',
+              icon: Icons.emoji_events_outlined,
+              iconColor: SystemPalette.gold,
             ),
           ],
           const SizedBox(height: SystemSpacing.md),

@@ -1,3 +1,4 @@
+import 'package:drift/drift.dart' show Value;
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -267,40 +268,6 @@ void main() {
       await _finish(tester, db);
     });
 
-    testWidgets(
-        'meta real do template aparece como séries planejadas restantes',
-        (tester) async {
-      final db = _memoryDb();
-      final exId = await _criarExercicio(db, 'Supino reto');
-      final templateRepo = DriftWorkoutTemplateRepository(db);
-      final treinoId = await templateRepo.create('Treino A');
-      await templateRepo.addExercise(treinoId, exId,
-          seriesAlvo: 3, repeticoesAlvo: 10);
-
-      await _pump(tester, db, treinoId);
-      await tester.tap(find.text('INICIAR TREINO'));
-      await tester.pumpAndSettle();
-
-      expect(find.text('META'), findsOneWidget);
-      expect(find.text('3×10'), findsOneWidget);
-      // Nenhuma série registrada ainda: 3 linhas planejadas (não vazio).
-      expect(find.text('SÉRIE 01'), findsOneWidget);
-      expect(find.text('SÉRIE 03'), findsOneWidget);
-      expect(
-          find.text('NENHUMA SÉRIE REGISTRADA NESTE EXERCÍCIO'), findsNothing);
-
-      await _registrarSerie(tester, carga: '30', reps: '10');
-      await _fecharDialogosSeHouver(tester);
-
-      // Agora só restam 2 linhas planejadas (série 02 e 03).
-      expect(find.text('SÉRIE 02'), findsOneWidget);
-      expect(find.text('SÉRIE 03'), findsOneWidget);
-
-      await _finish(tester, db);
-    });
-  });
-
-  group('PR (recorde pessoal)', () {
     testWidgets('sem PR ainda, a caixa PR ATUAL não aparece', (tester) async {
       final db = _memoryDb();
       final exId = await _criarExercicio(db, 'Supino reto');
@@ -457,6 +424,10 @@ void main() {
       final templateRepo = DriftWorkoutTemplateRepository(db);
       final treinoId = await templateRepo.create('Treino A');
       await templateRepo.addExercise(treinoId, exercicioId);
+      // 1 treino programado na semana: finalizar este conclui a semanal.
+      await db
+          .into(db.scheduleDays)
+          .insert(ScheduleDaysCompanion.insert(weekday: const Value(1)));
 
       await _pump(tester, db, treinoId);
       await tester.tap(find.text('INICIAR TREINO'));
@@ -478,7 +449,7 @@ void main() {
       await tester.tap(find.text('FINALIZAR'));
       await tester.pumpAndSettle();
 
-      // Finalizar o primeiro treino do dia também bate a missão diária.
+      // Finalizar o único treino programado bate a missão semanal.
       expect(find.text('MISSÃO CONCLUÍDA'), findsOneWidget);
       await tester.tap(find.text('OK'));
       await tester.pumpAndSettle();
@@ -678,8 +649,7 @@ void main() {
       final exId = await _criarExercicio(db, 'Supino reto');
       final templateRepo = DriftWorkoutTemplateRepository(db);
       final treinoId = await templateRepo.create('Treino A');
-      await templateRepo.addExercise(treinoId, exId,
-          seriesAlvo: 3, repeticoesAlvo: 10);
+      await templateRepo.addExercise(treinoId, exId);
 
       tester.view.physicalSize = const Size(320, 640);
       tester.view.devicePixelRatio = 1.0;
@@ -700,8 +670,7 @@ void main() {
       final exId = await _criarExercicio(db, 'Supino reto');
       final templateRepo = DriftWorkoutTemplateRepository(db);
       final treinoId = await templateRepo.create('Treino A');
-      await templateRepo.addExercise(treinoId, exId,
-          seriesAlvo: 3, repeticoesAlvo: 10);
+      await templateRepo.addExercise(treinoId, exId);
 
       tester.view.platformDispatcher.textScaleFactorTestValue = 1.8;
 

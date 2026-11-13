@@ -360,6 +360,8 @@ Ao subir de nível:
 
 # 10. SISTEMA DE RANK
 
+> **Atualizado — ver a seção 30.**
+
 O usuário possuirá um Rank baseado no nível.
 
 Ranks iniciais:
@@ -393,6 +395,8 @@ O Rank é principalmente um elemento de progressão e identidade dentro do aplic
 ---
 
 # 11. SISTEMA DE MISSÕES
+
+> **Atualizado — ver a seção 30.**
 
 O aplicativo possuirá missões.
 
@@ -461,6 +465,8 @@ Os desafios devem conectar a gamificação com o progresso real do usuário.
 ---
 
 # 12. DESCANSO E SEQUÊNCIAS
+
+> **Atualizado — ver a seção 30.**
 
 O sistema não deve considerar descanso planejado como falha.
 
@@ -663,6 +669,8 @@ O objetivo é criar identidade visual sem criar problemas de balanceamento.
 ---
 
 # 17. TELA PRINCIPAL — SISTEMA
+
+> **Atualizado — ver a seção 30.**
 
 A tela principal deve funcionar como um painel de controle.
 
@@ -1200,3 +1208,97 @@ Não utilizar no MVP
 
 Arquitetura:
 Offline-first / local-first
+
+---
+
+# 30. REGRAS ATUAIS — MISSÃO DIÁRIA, FOLGAS, PENALIDADE, EXAME DE RANK E NAVEGAÇÃO
+
+Esta seção vale sobre as anteriores quando houver conflito.
+
+## 30.1 Navegação (5 abas)
+
+SISTEMA, TREINOS, ATIVIDADES, MISSÕES, STATUS.
+
+* **SISTEMA** (ordem): cabeçalho do jogador (avatar que abre o Perfil, nome,
+  classe, nível, rank, barra de XP, aviso de penalidade); resumo da missão
+  diária (3 barras; toque abre a tela da missão); "Hoje" (treino programado
+  ou "Descanso programado" com "Iniciar treino", ou o cartão do treino em
+  andamento); exame de rank (só se ativo); faixa da semana com contador de
+  folgas. Sem atalho de Histórico/Exercícios nem "Progresso recente".
+* **TREINOS**: "Minha semana", meus treinos (inclui a biblioteca A–F), botão
+  Exercícios, cartão de treino em andamento. Criar/renomear treino é um
+  diálogo.
+* **ATIVIDADES**: 7 modalidades — Corrida/Caminhada, Ciclismo, Muay Thai/Boxe,
+  Jiu Jitsu, Basquete, Futebol e Skate (registros antigos migrados).
+* **MISSÕES**: Missão Diária no topo, penalidade pendente, semanal, desafios,
+  exame de rank e concluídas recentemente.
+* **STATUS**: relatório semanal (e lista de relatórios anteriores),
+  estatísticas, atributos, atalhos para Histórico e Conquistas, detalhe por
+  exercício. A identidade fica só na tela Sistema.
+
+## 30.2 Missão diária
+
+Todos os dias, inclusive de descanso: **50 flexões, 50 abdominais e 2 km** de
+caminhada/corrida, somados ao longo do dia (botões +10/+25, campo livre e
+desfazer; km em vários registros). Vale **50 XP** e só quando as 3 partes
+estão completas (parcial não dá XP nem evita a penalidade). Tela própria
+(`/missions/daily`). É separada dos treinos de academia: **não** conta como
+treino para missão semanal, exame de rank nem estatísticas. Os km da missão
+ficam só nela; corrida/caminhada fora da missão vai para Atividades; um não
+conta para o outro e ciclismo não conta.
+
+## 30.3 Programação semanal e missão semanal
+
+O usuário escolhe livremente os dias de treino (os demais são descanso). A
+missão semanal é "concluir todos os treinos de academia programados na
+semana" (tudo ou nada). XP por treinos programados: 1=50, 2=100, 3=150,
+4=250, 5=300, 6=350, 7=400. Sem programação não há missão semanal. O desafio
+de carga por exercício continua como antes.
+
+## 30.4 Folgas e penalidade
+
+* **4 folgas por mês**, sem acumular. Marcadas tocando no dia (hoje ou
+  futuro) na faixa da semana ou na tela da missão diária. Dia de folga não
+  cobra a missão nem dá XP. Faixa: ✔ cumprida, ⏸ folga, ✖ falhou, ◉ hoje, ○
+  futuro, ponto nos dias de treino.
+* **Penalidade**: na virada do dia, missão do dia anterior não cumprida e sem
+  folga perde **100 XP**, no máximo **300 XP por semana** (seg–dom). O XP nunca
+  fica abaixo do início do nível atual (não cai de nível) e o rank nunca cai.
+  Aviso vermelho na próxima abertura, até o usuário confirmar.
+
+## 30.5 Rank e exame de rank
+
+O nível continua subindo pelo XP, mas o **rank só sobe ao passar no exame**.
+O exame é liberado ao atingir o nível mínimo do próximo rank (E=10, D=20,
+C=30, B=40, A=50, S=60) e começa nesse momento. Requisitos, todos dentro do
+período:
+
+| Exame | Treinos | Duração | Atividades extras |
+| ----- | ------: | ------: | ----------------- |
+| F→E | 12 | 21 dias | 3 modalidades, 1 registro cada |
+| E→D | 18 | 30 dias | 3 modalidades, 2 registros cada |
+| D→C | 26 | 45 dias | 3 modalidades, 2 registros cada |
+| C→B | 36 | 60 dias | 4 modalidades, 2 registros cada |
+| B→A | 48 | 75 dias | 4 modalidades, 3 registros cada |
+| A→S | 64 | 90 dias | 4 modalidades, 3 registros cada |
+
+O usuário escolhe as modalidades entre as de Atividades; só contam registros
+de 30+ min. Além disso, a missão diária precisa ser cumprida em pelo menos 75%
+dos dias do período (dias de folga ficam fora do cálculo). O exame **reinicia**
+(progresso zerado, novo período começando na hora, com aviso) quando o prazo
+acaba com algo incompleto ou assim que os 75% ficam matematicamente
+impossíveis. Ao passar: overlay "RANK UP" e conquista "Rank E" conforme o
+exame. Visível nas abas Missões e Sistema.
+
+## 30.6 Biblioteca padrão e treinos
+
+Na primeira instalação (ou na migração, se não houver treino) são criados 6
+treinos — A Push 1, B Pull 1, C Legs 1, D Push 2, E Pull 2, F Legs 2 — só com
+os exercícios (sem séries/repetições-alvo; a meta de séries × repetições foi
+removida). Exercícios repetidos são o mesmo registro. Tudo editável/apagável.
+
+## 30.7 Relatório semanal
+
+Cartão em Status com treinos concluídos, atividades registradas e recordes
+quebrados da semana (seg–dom); relatórios anteriores numa lista (`/reports`).
+Calculado dos dados reais.

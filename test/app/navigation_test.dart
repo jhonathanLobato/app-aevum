@@ -64,7 +64,7 @@ void main() {
       await _finish(tester, db);
     });
 
-    testWidgets('Sistema → Treinos → Missões → Status → Conquistas → Sistema',
+    testWidgets('Sistema → Treinos → Missões → Status → Sistema',
         (tester) async {
       final db = _memoryDb();
       await _pumpApp(tester, db);
@@ -83,11 +83,6 @@ void main() {
       // Status usa SystemScaffold (sem AppBar).
       expect(find.text('FICHA DO CAÇADOR'), findsOneWidget);
 
-      await tester.tap(find.text('CONQUISTAS'));
-      await tester.pumpAndSettle();
-      // Conquistas usa SystemScaffold (sem AppBar).
-      expect(find.text('TROFÉUS DO SISTEMA'), findsOneWidget);
-
       await tester.tap(find.text('SISTEMA'));
       await tester.pumpAndSettle();
       expect(find.text('SYSTEM ONLINE'), findsOneWidget);
@@ -105,14 +100,7 @@ void main() {
       double x(String label) => tester
           .getCenter(find.descendant(of: nav, matching: find.text(label)))
           .dx;
-      final ordem = [
-        'SISTEMA',
-        'TREINOS',
-        'ATIVIDADES',
-        'MISSÕES',
-        'STATUS',
-        'CONQUISTAS'
-      ];
+      final ordem = ['SISTEMA', 'TREINOS', 'ATIVIDADES', 'MISSÕES', 'STATUS'];
       for (var i = 0; i < ordem.length - 1; i++) {
         expect(x(ordem[i]), lessThan(x(ordem[i + 1])),
             reason: '${ordem[i]} antes de ${ordem[i + 1]}');
@@ -146,7 +134,7 @@ void main() {
       await _finish(tester, db);
     });
 
-    testWidgets('a navigation bar está sempre visível nas 6 abas',
+    testWidgets('a navigation bar está sempre visível nas 5 abas',
         (tester) async {
       final db = _memoryDb();
       await _pumpApp(tester, db);
@@ -156,7 +144,6 @@ void main() {
         'ATIVIDADES',
         'MISSÕES',
         'STATUS',
-        'CONQUISTAS',
         'SISTEMA'
       ]) {
         await tester.tap(find.text(label));
@@ -317,7 +304,8 @@ void main() {
       await tester.tap(find.byTooltip('Voltar'));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('SISTEMA'));
+      // Histórico, Conquistas e relatórios ficam na aba STATUS.
+      await tester.tap(find.text('STATUS'));
       await tester.pumpAndSettle();
       await tester.ensureVisible(find.text('HISTÓRICO'));
       await tester.tap(find.text('HISTÓRICO'));
@@ -326,8 +314,24 @@ void main() {
       await tester.tap(find.byTooltip('Voltar'));
       await tester.pumpAndSettle();
 
-      // Perfil fica no cabeçalho (ícone, sem texto visível), não na lista
-      // de atalhos do fim da página.
+      await tester.ensureVisible(find.text('CONQUISTAS'));
+      await tester.tap(find.text('CONQUISTAS'));
+      await tester.pumpAndSettle();
+      expect(find.text('TROFÉUS DO SISTEMA'), findsOneWidget);
+      await tester.tap(find.byTooltip('Voltar'));
+      await tester.pumpAndSettle();
+
+      await tester.ensureVisible(find.text('RELATÓRIOS ANTERIORES'));
+      await tester.tap(find.text('RELATÓRIOS ANTERIORES'));
+      await tester.pumpAndSettle();
+      expect(find.text('SEMANA A SEMANA'), findsOneWidget);
+      await tester.tap(find.byTooltip('Voltar'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('SISTEMA'));
+      await tester.pumpAndSettle();
+
+      // Perfil abre pelo avatar do cabeçalho da tela Sistema.
       await tester.tap(find.byTooltip('Perfil'));
       await tester.pumpAndSettle();
       expect(find.text('IDENTIDADE DO JOGADOR'), findsOneWidget);
@@ -415,7 +419,7 @@ void main() {
       await _pumpApp(tester, db);
 
       expect(tester.takeException(), isNull);
-      expect(find.text('CONQUISTAS'), findsOneWidget);
+      expect(find.text('STATUS'), findsOneWidget);
 
       tester.view.resetPhysicalSize();
       tester.view.resetDevicePixelRatio();
@@ -430,7 +434,7 @@ void main() {
       await _pumpApp(tester, db);
 
       expect(tester.takeException(), isNull);
-      expect(find.text('CONQUISTAS'), findsOneWidget);
+      expect(find.text('STATUS'), findsOneWidget);
 
       tester.view.platformDispatcher.clearTextScaleFactorTestValue();
       await _finish(tester, db);
@@ -444,12 +448,11 @@ void main() {
       await _pumpApp(tester, db);
 
       expect(tester.takeException(), isNull);
-      expect(find.text('CONQUISTAS'), findsOneWidget);
+      expect(find.text('STATUS'), findsOneWidget);
 
-      await tester.tap(find.text('CONQUISTAS'));
+      await tester.tap(find.text('STATUS'));
       await tester.pumpAndSettle();
-      // Conquistas usa SystemScaffold (sem AppBar).
-      expect(find.text('TROFÉUS DO SISTEMA'), findsOneWidget);
+      expect(find.text('FICHA DO CAÇADOR'), findsOneWidget);
 
       tester.view.resetPadding();
       await _finish(tester, db);
