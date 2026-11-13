@@ -42,7 +42,33 @@ class DriftExerciseRepository implements ExerciseRepository {
   }
 
   @override
+  Future<bool> isInUse(int id) async {
+    Future<bool> existe<T extends HasResultSet, D>(
+      ResultSetImplementation<T, D> tabela,
+      Expression<int> coluna,
+    ) async {
+      final contagem = coluna.count();
+      final linha = await (_db.selectOnly(tabela)
+            ..addColumns([contagem])
+            ..where(coluna.equals(id)))
+          .getSingle();
+      return (linha.read(contagem) ?? 0) > 0;
+    }
+
+    return await existe(_db.workoutTemplateExercises,
+            _db.workoutTemplateExercises.exerciseId) ||
+        await existe(_db.setEntries, _db.setEntries.exerciseId) ||
+        await existe(_db.personalRecords, _db.personalRecords.exerciseId) ||
+        await existe(_db.missions, _db.missions.exerciseId) ||
+        await existe(_db.finishedExercises, _db.finishedExercises.exerciseId) ||
+        await existe(_db.setDrafts, _db.setDrafts.exerciseId);
+  }
+
+  @override
   Future<void> delete(int id) {
-    return (_db.delete(_db.exercises)..where((e) => e.id.equals(id))).go();
+    return _db.transaction(() async {
+      if (await isInUse(id)) throw const ExerciseInUseException();
+      await (_db.delete(_db.exercises)..where((e) => e.id.equals(id))).go();
+    });
   }
 }

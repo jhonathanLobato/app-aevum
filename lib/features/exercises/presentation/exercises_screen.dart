@@ -4,7 +4,9 @@ import 'package:go_router/go_router.dart';
 
 import '../../../design_system/system_back_button.dart';
 import '../../../design_system/system_button.dart';
+import '../../../design_system/system_choice_dialog.dart';
 import '../../../design_system/system_colors.dart';
+import '../../../design_system/system_confirm_dialog.dart';
 import '../../../design_system/system_empty_state.dart';
 import '../../../design_system/system_entrance.dart';
 import '../../../design_system/system_motion.dart';
@@ -13,6 +15,7 @@ import '../../../design_system/system_scaffold.dart';
 import '../../../design_system/system_spacing.dart';
 import '../../../design_system/system_text_styles.dart';
 import '../domain/exercise.dart';
+import '../domain/exercise_repository.dart';
 import 'exercise_form_sheet.dart';
 import 'exercise_providers.dart';
 
@@ -86,6 +89,47 @@ class _ExerciseCard extends ConsumerWidget {
 
   final Exercise exercise;
 
+  Future<void> _excluir(BuildContext context, WidgetRef ref) async {
+    final repo = ref.read(exerciseRepositoryProvider);
+
+    if (await repo.isInUse(exercise.id)) {
+      if (context.mounted) await _avisarEmUso(context);
+      return;
+    }
+    if (!context.mounted) return;
+
+    final confirmar = await showSystemConfirmDialog(
+      context,
+      titulo: 'Excluir exercício?',
+      mensagem:
+          'Isso remove "${exercise.nome}" da biblioteca. Esta ação não pode ser desfeita.',
+      confirmar: 'Excluir',
+      icone: Icons.delete_outline,
+      destrutivo: true,
+    );
+    if (!confirmar) return;
+
+    try {
+      await repo.delete(exercise.id);
+    } on ExerciseInUseException {
+      if (context.mounted) await _avisarEmUso(context);
+    }
+  }
+
+  Future<void> _avisarEmUso(BuildContext context) {
+    return showSystemChoiceDialog<bool>(
+      context,
+      titulo: 'Exercício em uso',
+      mensagem:
+          '"${exercise.nome}" não pode ser excluído porque já faz parte de treinos ou tem séries e recordes registrados. Remova-o dos treinos antes, ou mantenha-o na biblioteca para preservar seu histórico.',
+      icone: Icons.lock_outline,
+      opcoes: const [
+        SystemChoice(
+            label: 'Entendi', valor: true, variant: SystemButtonVariant.action),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return SystemPanel(
@@ -137,8 +181,7 @@ class _ExerciseCard extends ConsumerWidget {
             icon: const Icon(Icons.delete_outline),
             color: SystemPalette.destructive,
             tooltip: 'Excluir exercício',
-            onPressed: () =>
-                ref.read(exerciseRepositoryProvider).delete(exercise.id),
+            onPressed: () => _excluir(context, ref),
           ),
         ],
       ),
