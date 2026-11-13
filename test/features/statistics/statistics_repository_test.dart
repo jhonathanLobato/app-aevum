@@ -150,6 +150,19 @@ void main() {
     expect(stats.maiorSequenciaDias, 3);
   });
 
+  test('sequência usa o dia local: treino às 22h em Brasília não pula de dia',
+      () async {
+    final brasilia = DriftStatisticsRepository(db,
+        deslocamento: (_) => const Duration(hours: -3));
+    // 22h de 10/03 e 10h de 11/03 em Brasília (01h e 13h de 11/03 em UTC).
+    await criarSessaoConcluida(data: DateTime.utc(2026, 3, 11, 1));
+    await criarSessaoConcluida(data: DateTime.utc(2026, 3, 11, 13));
+
+    final stats = await brasilia.watchGlobal().first;
+
+    expect(stats.maiorSequenciaDias, 2);
+  });
+
   test('estatísticas por exercício calculam máximos e intervalo de datas',
       () async {
     final sessao1 = await criarSessaoConcluida(data: DateTime(2026, 1, 1));

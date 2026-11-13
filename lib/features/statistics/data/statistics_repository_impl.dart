@@ -3,12 +3,16 @@ import 'package:drift/drift.dart';
 import '../../../database/app_database.dart';
 import '../../workouts/domain/workout_session.dart';
 import '../domain/statistics.dart';
+import '../domain/streak.dart';
 import '../domain/statistics_repository.dart';
 
 class DriftStatisticsRepository implements StatisticsRepository {
-  DriftStatisticsRepository(this._db);
+  DriftStatisticsRepository(this._db,
+      {DeslocamentoLocal deslocamento = deslocamentoDoAparelho})
+      : _deslocamento = deslocamento;
 
   final AppDatabase _db;
+  final DeslocamentoLocal _deslocamento;
 
   @override
   Stream<GlobalStatistics> watchGlobal() async* {
@@ -70,27 +74,15 @@ class DriftStatisticsRepository implements StatisticsRepository {
     );
   }
 
+  /// Dias consecutivos com treino concluído, contados no fuso local.
   Future<int> _calcularMaiorSequencia() async {
-    final resultado = await _db.customSelect(
-      '''
-      WITH dias AS (
-        SELECT DISTINCT date(data, 'unixepoch') AS dia
-        FROM workout_sessions
-        WHERE status = 'concluido'
-      ),
-      numerados AS (
-        SELECT dia, ROW_NUMBER() OVER (ORDER BY dia) AS rn FROM dias
-      ),
-      agrupados AS (
-        SELECT julianday(dia) - rn AS grupo FROM numerados
-      )
-      SELECT COUNT(*) AS tamanho FROM agrupados GROUP BY grupo
-      ORDER BY tamanho DESC LIMIT 1
-      ''',
-      readsFrom: {_db.workoutSessions},
-    ).getSingleOrNull();
-
-    return resultado?.read<int>('tamanho') ?? 0;
+    final datas = await (_db.selectOnly(_db.workoutSessions)
+          ..addColumns([_db.workoutSessions.data])
+          ..where(_db.workoutSessions.status
+              .equalsValue(WorkoutSessionStatus.concluido)))
+        .map((row) => row.read(_db.workoutSessions.data)!)
+        .get();
+    return maiorSequenciaDeDias(datas, deslocamento: _deslocamento);
   }
 
   @override
