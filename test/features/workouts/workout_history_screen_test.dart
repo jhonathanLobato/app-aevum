@@ -15,7 +15,7 @@ import 'package:gym_system/features/workouts/presentation/active_workout_screen.
 import 'package:gym_system/features/workouts/presentation/workout_history_screen.dart';
 
 void main() {
-  testWidgets('lista treinos finalizados e abre o detalhe ao tocar',
+  testWidgets('lista treinos finalizados e expande o detalhe ao tocar',
       (tester) async {
     final db = AppDatabase.forTesting(NativeDatabase.memory());
     addTearDown(db.close);
@@ -64,12 +64,13 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('TREINO LIVRE'), findsOneWidget);
-    expect(find.text('SÉRIES'), findsOneWidget);
+    expect(find.text('EXERCÍCIOS'), findsOneWidget);
     expect(find.text('300 KG'), findsOneWidget);
 
     await tester.tap(find.text('TREINO LIVRE'));
     await tester.pumpAndSettle();
 
+    expect(find.text('SUPINO RETO'), findsOneWidget);
     expect(find.text('30.0 KG × 10'), findsOneWidget);
     expect(find.text('FINALIZAR TREINO'), findsNothing);
 

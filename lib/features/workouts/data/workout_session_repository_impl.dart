@@ -342,6 +342,7 @@ class DriftWorkoutSessionRepository implements WorkoutSessionRepository {
   Stream<List<WorkoutSessionSummary>> watchHistory() {
     final totalSeries = _db.setEntries.id.count();
     final volumeTotal = _db.setEntries.volume.sum();
+    final totalExercicios = _db.setEntries.exerciseId.count(distinct: true);
 
     final query = _db.selectOnly(_db.workoutSessions).join([
       leftOuterJoin(
@@ -357,6 +358,7 @@ class DriftWorkoutSessionRepository implements WorkoutSessionRepository {
         _db.workoutSessions.duracaoSegundos,
         totalSeries,
         volumeTotal,
+        totalExercicios,
       ])
       ..where(_db.workoutSessions.status
           .equalsValue(WorkoutSessionStatus.concluido))
@@ -375,6 +377,7 @@ class DriftWorkoutSessionRepository implements WorkoutSessionRepository {
           duracaoSegundos: row.read(_db.workoutSessions.duracaoSegundos),
           totalSeries: row.read(totalSeries) ?? 0,
           volumeTotal: row.read(volumeTotal) ?? 0,
+          totalExercicios: row.read(totalExercicios) ?? 0,
         );
       }).toList();
     });

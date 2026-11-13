@@ -80,6 +80,7 @@ class WorkoutSessionSummary {
     required this.duracaoSegundos,
     required this.totalSeries,
     required this.volumeTotal,
+    required this.totalExercicios,
   });
 
   final int id;
@@ -87,6 +88,9 @@ class WorkoutSessionSummary {
   final DateTime data;
   final int? duracaoSegundos;
   final int totalSeries;
+
+  /// Exercícios distintos com pelo menos uma série registrada.
+  final int totalExercicios;
   final double volumeTotal;
 }
 
