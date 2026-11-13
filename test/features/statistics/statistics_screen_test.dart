@@ -6,7 +6,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gym_system/database/app_database.dart';
 import 'package:gym_system/database/database_provider.dart';
-import 'package:gym_system/design_system/rank_badge.dart';
 import 'package:gym_system/features/profile/data/profile_repository_impl.dart';
 import 'package:gym_system/features/profile/domain/player_class.dart';
 import 'package:gym_system/features/statistics/domain/statistics.dart';
@@ -71,8 +70,47 @@ Future<void> _finishAWorkout(
 }
 
 void main() {
-  group('Status — identidade e atributos', () {
-    testWidgets('usuário novo mostra identidade real e atributos zerados',
+  group('Status — quadros', () {
+    testWidgets(
+        'quadros na ordem: Rank, Relatório semanal, Histórico/Conquistas',
+        (tester) async {
+      final db = _memoryDb();
+      await DriftProfileRepository(db).addXp(1);
+      await _pumpScreen(tester, db);
+
+      double topo(Finder f) => tester.getTopLeft(f).dy;
+      final rank = topo(find.byKey(const Key('rank_card')));
+      final relatorio = topo(find.text('RELATÓRIO SEMANAL'));
+      final historico = topo(find.byKey(const Key('entrada_historico')));
+      final conquistas = topo(find.byKey(const Key('entrada_conquistas')));
+      expect(rank, lessThan(relatorio));
+      expect(relatorio, lessThan(historico));
+      expect(historico, lessThan(conquistas));
+
+      expect(find.text('HISTÓRICO'), findsOneWidget);
+      expect(find.text('CONQUISTAS'), findsOneWidget);
+      // Atributos escondidos e detalhe por exercício removido.
+      expect(find.text('ATRIBUTOS'), findsNothing);
+      expect(find.text('FORÇA'), findsNothing);
+      expect(find.text('DETALHES POR EXERCÍCIO'), findsNothing);
+
+      await _finish(tester, db);
+    });
+
+    testWidgets('quadro Rank mostra rank, nível e o estado do próximo exame',
+        (tester) async {
+      final db = _memoryDb();
+      await DriftProfileRepository(db).addXp(1);
+      await _pumpScreen(tester, db);
+
+      expect(find.textContaining('RANK F · NÍVEL 1'), findsOneWidget);
+      expect(find.text('PRÓXIMO EXAME (E) BLOQUEADO'), findsOneWidget);
+      expect(find.textContaining('faltam 9 níveis'), findsOneWidget);
+
+      await _finish(tester, db);
+    });
+
+    testWidgets('usuário novo mostra relatório e estatísticas zeradas',
         (tester) async {
       final db = _memoryDb();
       await DriftProfileRepository(db)
@@ -82,15 +120,8 @@ void main() {
 
       // A identidade (nome/rank/nível) fica na tela Sistema, não aqui.
       expect(find.text('ASTRA'), findsNothing);
-      expect(find.byType(RankBadge), findsNothing);
       expect(find.text('RELATÓRIO SEMANAL'), findsOneWidget);
-      expect(find.text('ATRIBUTOS'), findsOneWidget);
-      expect(find.text('FORÇA'), findsOneWidget);
-      expect(find.text('RESISTÊNCIA'), findsOneWidget);
-      expect(find.text('CONSTÂNCIA'), findsOneWidget);
-      // Sem nenhum treino, os 3 atributos (e as estatísticas globais) ficam
-      // todos em 0 (ver PlayerAttributesCalculator) — '0' aparece várias
-      // vezes na tela, então só confirmamos que aparece, não a contagem.
+      // Sem nenhum treino as estatísticas globais ficam em 0.
       expect(find.text('0'), findsWidgets);
 
       await _finish(tester, db);
@@ -112,33 +143,6 @@ void main() {
       expect(find.text('PRS'), findsOneWidget);
       expect(find.text('VOLUME'), findsOneWidget);
       expect(find.textContaining('KG'), findsWidgets);
-
-      await _finish(tester, db);
-    });
-
-    testWidgets('detalhes por exercício aparecem quando há histórico',
-        (tester) async {
-      final db = _memoryDb();
-      final exId = await db.into(db.exercises).insert(
-            ExercisesCompanion.insert(
-                nome: 'Supino reto', grupoMuscular: 'Peito'),
-          );
-      await _finishAWorkout(db, nome: 'Treino A', exerciseId: exId);
-
-      await _pumpScreen(tester, db);
-
-      expect(find.text('DETALHES POR EXERCÍCIO'), findsOneWidget);
-      expect(find.text('Supino reto'), findsOneWidget);
-
-      await _finish(tester, db);
-    });
-
-    testWidgets('sem exercícios registrados mostra estado vazio nos detalhes',
-        (tester) async {
-      final db = _memoryDb();
-      await _pumpScreen(tester, db);
-
-      expect(find.text('NENHUM EXERCÍCIO REGISTRADO AINDA'), findsOneWidget);
 
       await _finish(tester, db);
     });

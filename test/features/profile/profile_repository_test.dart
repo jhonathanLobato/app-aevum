@@ -75,10 +75,10 @@ void main() {
 
   group('removeXp (penalidade)', () {
     test('tira o XP pedido dentro do nível atual', () async {
-      await repo.addXp(500);
+      await repo.addXp(2000); // nível 4 (começa em 1.500)
       final perdido = await repo.removeXp(100);
       expect(perdido, 100);
-      expect((await repo.watchCurrentUser().first)!.xp, 400);
+      expect((await repo.watchCurrentUser().first)!.xp, 1900);
     });
 
     test('nunca cai abaixo do início do nível atual (não perde nível)',
@@ -93,6 +93,17 @@ void main() {
       final user = (await repo.watchCurrentUser().first)!;
       expect(user.xp, inicioNivel2);
       expect(user.nivel, 2);
+    });
+
+    test('ajuste sem piso (atividade excluída) pode recalcular o nível',
+        () async {
+      const curve = LevelCurve();
+      await repo.addXp(curve.xpParaProximoNivel(1) + 20); // nível 2
+      final perdido = await repo.removeXp(100, respeitarPisoDoNivel: false);
+      expect(perdido, 100);
+      final u = (await repo.watchCurrentUser().first)!;
+      expect(u.nivel, 1);
+      expect(u.xp, curve.xpParaProximoNivel(1) - 80);
     });
 
     test('no início do nível não perde nada; o rank nunca cai', () async {

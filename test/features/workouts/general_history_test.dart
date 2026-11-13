@@ -306,7 +306,8 @@ void main() {
     expect(find.text('TREINO A'), findsOneWidget);
     expect(find.text('1 REGISTRO'), findsOneWidget);
     expect(await db.select(db.sportActivities).get(), isEmpty);
-    expect(await db.select(db.users).get(), isEmpty);
+    // O XP do registro (+30) volta a zero ao excluir.
+    expect((await db.select(db.users).getSingle()).xp, 0);
     await _finish(tester, db);
   });
 }

@@ -14,4 +14,7 @@ class Users extends Table {
   IntColumn get xp => integer().withDefault(const Constant(0))();
   IntColumn get nivel => integer().withDefault(const Constant(1))();
   TextColumn get rank => text().withDefault(const Constant('F'))();
+
+  /// Quando o jogador entrou no rank atual (base do tempo mínimo no rank).
+  DateTimeColumn get rankDesde => dateTime().nullable()();
 }

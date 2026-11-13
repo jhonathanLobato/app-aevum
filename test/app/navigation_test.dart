@@ -7,6 +7,7 @@ import 'package:gym_system/app/router.dart';
 import 'package:gym_system/database/app_database.dart';
 import 'package:gym_system/database/database_provider.dart';
 import 'package:gym_system/design_system/system_navigation_bar.dart';
+import 'package:gym_system/features/profile/data/profile_repository_impl.dart';
 import 'package:gym_system/features/workouts/data/workout_template_repository_impl.dart';
 
 /// Testes de ponta a ponta da navegação principal (Fase 4): a [App] real,
@@ -283,6 +284,34 @@ void main() {
       // Voltou pra aba Treinos (não pro Sistema).
       expect(find.text('PROTOCOLOS DE TREINAMENTO'), findsOneWidget);
       expect(find.byType(SystemNavigationBar), findsOneWidget);
+
+      await _finish(tester, db);
+    });
+
+    testWidgets('Minha semana (Treinos) e Rank (Status) abrem suas telas',
+        (tester) async {
+      final db = _memoryDb();
+      await DriftProfileRepository(db).addXp(1); // cria o usuário
+      await _pumpApp(tester, db);
+
+      await tester.tap(find.text('TREINOS'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('MINHA SEMANA'));
+      await tester.pumpAndSettle();
+      expect(find.text('DIAS DE TREINO'), findsOneWidget);
+      expect(find.byType(SystemNavigationBar), findsNothing);
+      await tester.tap(find.byTooltip('Voltar'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('STATUS'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('rank_card')));
+      await tester.pumpAndSettle();
+      expect(find.text('EXAME DE REAVALIAÇÃO'), findsOneWidget);
+      expect(find.text('COMO FUNCIONA'), findsOneWidget);
+      await tester.tap(find.byTooltip('Voltar'));
+      await tester.pumpAndSettle();
+      expect(find.text('FICHA DO CAÇADOR'), findsOneWidget);
 
       await _finish(tester, db);
     });

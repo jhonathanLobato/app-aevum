@@ -13,7 +13,7 @@ import '../../../design_system/system_spacing.dart';
 import '../../../design_system/system_text_styles.dart';
 import '../domain/workout_template.dart';
 import 'widgets/active_workout_card.dart';
-import 'widgets/week_schedule_panel.dart';
+import 'widgets/week_schedule_summary.dart';
 import 'workout_name_dialog.dart';
 import 'workout_template_providers.dart';
 
@@ -43,7 +43,7 @@ class WorkoutsScreen extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           const ActiveWorkoutCard(),
-          const WeekSchedulePanel(),
+          const WeekScheduleSummary(),
           const SizedBox(height: SystemSpacing.lg),
           SystemButton(
             label: 'Novo treino',

@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart';
 
 import '../../../database/app_database.dart';
+import '../../../database/watch_tables.dart';
 import '../../workouts/domain/workout_session.dart';
 import '../../daily/domain/daily_values.dart';
 import '../domain/statistics.dart';
@@ -17,16 +18,13 @@ class DriftStatisticsRepository implements StatisticsRepository {
   final DeslocamentoLocal _deslocamento;
 
   @override
-  Stream<GlobalStatistics> watchGlobal() async* {
-    final gatilho = _db.tableUpdates(TableUpdateQuery.onAllTables([
+  Stream<GlobalStatistics> watchGlobal() {
+    return _db.observar([
       _db.workoutSessions,
       _db.setEntries,
       _db.personalRecords,
       _db.users,
-    ]));
-
-    yield await _calcularGlobal();
-    yield* gatilho.asyncMap((_) => _calcularGlobal());
+    ], _calcularGlobal);
   }
 
   Future<GlobalStatistics> _calcularGlobal() async {
@@ -126,14 +124,11 @@ class DriftStatisticsRepository implements StatisticsRepository {
       ];
     }
 
-    yield await carregar();
-    yield* _db
-        .tableUpdates(TableUpdateQuery.onAllTables([
-          _db.workoutSessions,
-          _db.sportActivities,
-          _db.personalRecords,
-        ]))
-        .asyncMap((_) => carregar());
+    yield* _db.observar([
+      _db.workoutSessions,
+      _db.sportActivities,
+      _db.personalRecords,
+    ], carregar);
   }
 
   @override

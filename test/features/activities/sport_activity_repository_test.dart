@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:gym_system/database/app_database.dart';
 import 'package:gym_system/features/activities/data/sport_activity_repository_impl.dart';
 import 'package:gym_system/features/activities/domain/sport_activity.dart';
+import 'package:gym_system/features/rank_exam/data/tables/rank_exam_table.dart';
 
 SportActivityInput _input(
   SportType tipo, {
@@ -208,21 +209,84 @@ void main() {
     });
   });
 
-  test('registrar atividades não gera nenhum XP/gamificação', () async {
-    await repo
-        .create(_input(SportType.corridaCaminhada, distancia: 5, duracao: 30));
-    await repo.create(_input(SportType.futebol, duracao: 90));
-    await repo.create(_input(SportType.muayThaiBoxe, rounds: 6));
-    final id = await repo.create(_input(SportType.skate));
-    await repo.update(id, _input(SportType.skate, duracao: 45));
-    await repo.delete(id);
+  group('XP de atividades extras', () {
+    // Semana de segunda 02/03/2026 a domingo 08/03/2026.
+    DateTime dia(int d) => DateTime(2026, 3, d);
 
-    expect(await db.select(db.users).get(), isEmpty);
-    expect(await db.select(db.personalRecords).get(), isEmpty);
-    expect(await db.select(db.missions).get(), isEmpty);
-    expect(await db.select(db.achievements).get(), isEmpty);
-    expect(await db.select(db.workoutSessions).get(), isEmpty);
-    expect(await db.select(db.setEntries).get(), isEmpty);
+    Future<int> xp() async {
+      final u = await db.select(db.users).getSingleOrNull();
+      return u?.xp ?? 0;
+    }
+
+    test('30+ min vale 30 XP; menos de 30 min não vale nada', () async {
+      await repo.create(_input(SportType.skate, data: dia(2), duracao: 29));
+      expect(await xp(), 0);
+      await repo.create(_input(SportType.skate, data: dia(2), duracao: 30));
+      expect(await xp(), 30);
+    });
+
+    test('no máximo 3 por semana (seg–dom); a semana seguinte zera', () async {
+      for (var d = 2; d <= 5; d++) {
+        await repo.create(_input(SportType.futebol, data: dia(d), duracao: 60));
+      }
+      expect(await xp(), 90); // o 4º da semana não vale
+      await repo.create(_input(SportType.futebol, data: dia(9), duracao: 60));
+      expect(await xp(), 120); // segunda seguinte: nova semana
+    });
+
+    test('domingo e segunda ficam em semanas diferentes', () async {
+      for (final d in [2, 3, 4]) {
+        await repo.create(_input(SportType.skate, data: dia(d)));
+      }
+      await repo.create(_input(SportType.skate, data: dia(8))); // domingo: 4º
+      expect(await xp(), 90);
+      await repo.create(_input(SportType.skate, data: dia(9))); // segunda
+      expect(await xp(), 120);
+    });
+
+    test('editar a duração para menos de 30 min tira o XP; voltar devolve',
+        () async {
+      final id = await repo.create(_input(SportType.skate, data: dia(3)));
+      expect(await xp(), 30);
+      await repo.update(id, _input(SportType.skate, data: dia(3), duracao: 20));
+      expect(await xp(), 0);
+      await repo.update(id, _input(SportType.skate, data: dia(3), duracao: 45));
+      expect(await xp(), 30);
+    });
+
+    test('excluir tira o XP e promove o 4º registro da semana', () async {
+      final ids = <int>[];
+      for (var d = 2; d <= 5; d++) {
+        ids.add(await repo.create(_input(SportType.skate, data: dia(d))));
+      }
+      expect(await xp(), 90);
+      await repo.delete(ids.first);
+      // Perde 30 do excluído e ganha 30 do que entrou no limite de 3.
+      expect(await xp(), 90);
+      await repo.delete(ids[1]);
+      expect(await xp(), 60);
+    });
+
+    test('mudar a data para outra semana move o XP entre as semanas', () async {
+      for (var d = 2; d <= 4; d++) {
+        await repo.create(_input(SportType.skate, data: dia(d)));
+      }
+      final extra =
+          await repo.create(_input(SportType.skate, data: dia(5))); // 4º: 0 XP
+      expect(await xp(), 90);
+      await repo.update(extra, _input(SportType.skate, data: dia(11)));
+      expect(await xp(), 120); // agora é o 1º da semana seguinte
+    });
+
+    test('continua sem PR, missão, conquista nem treino', () async {
+      await repo.create(
+          _input(SportType.corridaCaminhada, distancia: 5, duracao: 30));
+      expect(await db.select(db.personalRecords).get(), isEmpty);
+      expect(await db.select(db.missions).get(), isEmpty);
+      expect(await db.select(db.achievements).get(), isEmpty);
+      expect(await db.select(db.workoutSessions).get(), isEmpty);
+      expect(await db.select(db.setEntries).get(), isEmpty);
+    });
   });
 
   test('migration v4 -> v5 unifica modalidades e remove metas do treino',
@@ -257,5 +321,45 @@ void main() {
         .get();
     expect(colunas.map((c) => c.read<String>('name')),
         ['id', 'template_id', 'exercise_id', 'ordem']);
+  });
+
+  test('migration v5 -> v7: nível recalculado, rank mantido, rank_desde = hoje',
+      () async {
+    final antigo = AppDatabase.forTesting(
+      NativeDatabase.memory(setup: (raw) {
+        raw.execute('PRAGMA user_version = 5');
+        raw.execute(
+            'CREATE TABLE users (id INTEGER PRIMARY KEY AUTOINCREMENT, nome TEXT NOT NULL, avatar TEXT NULL, classe TEXT NOT NULL, titulo TEXT NULL, tema TEXT NOT NULL DEFAULT "escuro", xp INTEGER NOT NULL DEFAULT 0, nivel INTEGER NOT NULL DEFAULT 1, rank TEXT NOT NULL DEFAULT "F")');
+        // 5.000 XP: com a curva antiga era nível 3; com a nova é nível 10.
+        raw.execute(
+            "INSERT INTO users (nome, classe, xp, nivel, rank) VALUES ('Astra', 'guerreiro', 5000, 3, 'E')");
+        raw.execute(
+            'CREATE TABLE sport_activities (id INTEGER PRIMARY KEY AUTOINCREMENT, tipo TEXT NOT NULL, data INTEGER NOT NULL, duracao_minutos INTEGER NOT NULL, distancia_km REAL NULL, rounds INTEGER NULL, observacoes TEXT NULL, criado_em INTEGER NOT NULL DEFAULT 0)');
+        raw.execute(
+            'CREATE TABLE rank_exams (id INTEGER PRIMARY KEY AUTOINCREMENT, rank_alvo TEXT NOT NULL, inicio INTEGER NOT NULL, prazo_dias INTEGER NOT NULL, modalidades TEXT NOT NULL DEFAULT "", status TEXT NOT NULL DEFAULT "ativo", reinicios INTEGER NOT NULL DEFAULT 0)');
+        raw.execute(
+            "INSERT INTO rank_exams (rank_alvo, inicio, prazo_dias, status) VALUES ('E', 0, 35, 'aguardando')");
+      }),
+    );
+    addTearDown(antigo.close);
+
+    final u = await antigo.select(antigo.users).getSingle();
+    expect(u.xp, 5000);
+    expect(u.nivel, 10);
+    expect(u.rank, 'E'); // o rank atual não cai
+    // Quem já existe conta o tempo no rank a partir de hoje.
+    final agora = DateTime.now();
+    expect(u.rankDesde, isNotNull);
+    expect(agora.difference(u.rankDesde!).inMinutes.abs(), lessThan(5));
+    // O antigo "aguardando" vira "disponível" (exame ainda não iniciado).
+    final exameAntigo = await antigo.select(antigo.rankExams).getSingle();
+    expect(exameAntigo.status, RankExamStatus.disponivel);
+    final colunas =
+        await antigo.customSelect('PRAGMA table_info(sport_activities)').get();
+    expect(
+        colunas.map((c) => c.read<String>('name')), contains('xp_concedido'));
+    final exame =
+        await antigo.customSelect('PRAGMA table_info(rank_exams)').get();
+    expect(exame.map((c) => c.read<String>('name')), contains('visto'));
   });
 }

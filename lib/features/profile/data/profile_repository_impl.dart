@@ -8,8 +8,14 @@ import '../domain/profile_repository.dart';
 import '../domain/user_profile.dart';
 
 class DriftProfileRepository implements ProfileRepository {
-  DriftProfileRepository(this._db, {LevelCurve levelCurve = const LevelCurve()})
-      : _levelCurve = levelCurve;
+  DriftProfileRepository(
+    this._db, {
+    LevelCurve levelCurve = const LevelCurve(),
+    DateTime Function()? agora,
+  })  : _levelCurve = levelCurve,
+        _agora = agora ?? DateTime.now;
+
+  final DateTime Function() _agora;
 
   final AppDatabase _db;
   final LevelCurve _levelCurve;
@@ -54,20 +60,24 @@ class DriftProfileRepository implements ProfileRepository {
   }
 
   @override
-  Future<int> removeXp(int quantidade) {
+  Future<int> removeXp(int quantidade, {bool respeitarPisoDoNivel = true}) {
     return _db.transaction(() async {
       final userId = await _ensureCurrentUserId();
       final atual = await (_db.select(_db.users)
             ..where((u) => u.id.equals(userId)))
           .getSingle();
 
-      final piso = _levelCurve.xpNoInicioDoNivel(atual.nivel);
+      final piso =
+          respeitarPisoDoNivel ? _levelCurve.xpNoInicioDoNivel(atual.nivel) : 0;
       final novoXp =
           (atual.xp - quantidade) < piso ? piso : atual.xp - quantidade;
       final perdido = atual.xp - novoXp;
       if (perdido > 0) {
         await (_db.update(_db.users)..where((u) => u.id.equals(userId)))
-            .write(UsersCompanion(xp: Value(novoXp)));
+            .write(UsersCompanion(
+          xp: Value(novoXp),
+          nivel: Value(_levelCurve.calcularNivel(novoXp).nivel),
+        ));
       }
       return perdido < 0 ? 0 : perdido;
     });
@@ -77,7 +87,10 @@ class DriftProfileRepository implements ProfileRepository {
   Future<void> setRank(String rank) async {
     final userId = await _ensureCurrentUserId();
     await (_db.update(_db.users)..where((u) => u.id.equals(userId)))
-        .write(UsersCompanion(rank: Value(rank)));
+        .write(UsersCompanion(
+      rank: Value(rank),
+      rankDesde: Value(_agora()),
+    ));
   }
 
   @override
@@ -104,7 +117,11 @@ class DriftProfileRepository implements ProfileRepository {
     final existente = await (_db.select(_db.users)..limit(1)).getSingleOrNull();
     if (existente != null) return existente.id;
     return _db.into(_db.users).insert(
-          UsersCompanion.insert(nome: 'Jogador', classe: PlayerClass.guerreiro),
+          UsersCompanion.insert(
+            nome: 'Jogador',
+            classe: PlayerClass.guerreiro,
+            rankDesde: Value(_agora()),
+          ),
         );
   }
 

@@ -15,7 +15,11 @@ abstract class ProfileRepository {
   /// Tira até [quantidade] de XP, sem nunca ficar abaixo do início do nível
   /// atual (não cai de nível; o rank nunca cai). Retorna o XP realmente
   /// perdido.
-  Future<int> removeXp(int quantidade);
+  ///
+  /// Com [respeitarPisoDoNivel] `false` (ajuste de um XP concedido por
+  /// engano, ex.: registro de atividade excluído) o XP pode descer abaixo do
+  /// início do nível e o nível é recalculado; o rank nunca muda.
+  Future<int> removeXp(int quantidade, {bool respeitarPisoDoNivel = true});
 
   /// Define o rank (usado só pelo exame de rank aprovado).
   Future<void> setRank(String rank);

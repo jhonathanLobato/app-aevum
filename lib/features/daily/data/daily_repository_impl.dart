@@ -1,6 +1,8 @@
 import 'package:drift/drift.dart';
 
 import '../../../database/app_database.dart';
+import '../../../database/watch_tables.dart';
+import '../../rank_exam/data/tables/rank_exam_table.dart';
 import '../../profile/domain/profile_repository.dart';
 import '../domain/daily_models.dart';
 import '../domain/daily_repository.dart';
@@ -15,12 +17,8 @@ class DriftDailyRepository implements DailyRepository {
   final DateTime Function() _agora;
 
   Stream<T> _observar<T>(
-      List<TableInfo> tabelas, Future<T> Function() carregar) async* {
-    yield await carregar();
-    yield* _db
-        .tableUpdates(TableUpdateQuery.onAllTables(tabelas))
-        .asyncMap((_) => carregar());
-  }
+          List<TableInfo> tabelas, Future<T> Function() carregar) =>
+      _db.observar(tabelas, carregar);
 
   // ---------------------------------------------------------------- hoje
 
@@ -296,7 +294,34 @@ class DriftDailyRepository implements DailyRepository {
       );
 
   @override
-  Future<void> alternarDiaDeTreino(int weekday) async {
+  Future<bool> salvarProgramacao(Set<int> dias) {
+    return _db.transaction(() async {
+      final atuais = {
+        for (final s in await _db.select(_db.scheduleDays).get()) s.weekday,
+      };
+      final exameAtivo = await (_db.select(_db.rankExams)
+            ..where((e) => e.status.equalsValue(RankExamStatus.ativo))
+            ..limit(1))
+          .getSingleOrNull();
+      if (exameAtivo != null && !dias.containsAll(atuais)) return false;
+
+      for (final dia in atuais.difference(dias)) {
+        await (_db.delete(_db.scheduleDays)
+              ..where((s) => s.weekday.equals(dia)))
+            .go();
+      }
+      for (final dia in dias.difference(atuais)) {
+        if (dia < 1 || dia > 7) continue;
+        await _db
+            .into(_db.scheduleDays)
+            .insert(ScheduleDaysCompanion.insert(weekday: Value(dia)));
+      }
+      return true;
+    });
+  }
+
+  @override
+  Future<bool> alternarDiaDeTreino(int weekday) async {
     final existe = await (_db.select(_db.scheduleDays)
           ..where((s) => s.weekday.equals(weekday)))
         .getSingleOrNull();
@@ -304,10 +329,16 @@ class DriftDailyRepository implements DailyRepository {
       await _db
           .into(_db.scheduleDays)
           .insert(ScheduleDaysCompanion.insert(weekday: Value(weekday)));
-    } else {
-      await (_db.delete(_db.scheduleDays)
-            ..where((s) => s.weekday.equals(weekday)))
-          .go();
+      return true;
     }
+    final exameAtivo = await (_db.select(_db.rankExams)
+          ..where((e) => e.status.equalsValue(RankExamStatus.ativo))
+          ..limit(1))
+        .getSingleOrNull();
+    if (exameAtivo != null) return false;
+    await (_db.delete(_db.scheduleDays)
+          ..where((s) => s.weekday.equals(weekday)))
+        .go();
+    return true;
   }
 }

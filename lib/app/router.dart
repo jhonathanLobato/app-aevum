@@ -3,7 +3,9 @@ import 'package:go_router/go_router.dart';
 
 import '../features/achievements/presentation/achievements_screen.dart';
 import '../features/daily/presentation/daily_mission_screen.dart';
+import '../features/rank_exam/presentation/rank_screen.dart';
 import '../features/statistics/presentation/weekly_reports_screen.dart';
+import '../features/workouts/presentation/week_schedule_screen.dart';
 import '../features/activities/domain/sport_activity.dart';
 import '../features/activities/presentation/activities_screen.dart';
 import '../features/activities/presentation/sport_activity_detail_screen.dart';
@@ -172,6 +174,16 @@ final appRouter = GoRouter(
       parentNavigatorKey: rootNavigatorKey,
       path: '/achievements',
       builder: (context, state) => const AchievementsScreen(),
+    ),
+    GoRoute(
+      parentNavigatorKey: rootNavigatorKey,
+      path: '/rank',
+      builder: (context, state) => const RankScreen(),
+    ),
+    GoRoute(
+      parentNavigatorKey: rootNavigatorKey,
+      path: '/week',
+      builder: (context, state) => const WeekScheduleScreen(),
     ),
     GoRoute(
       parentNavigatorKey: rootNavigatorKey,

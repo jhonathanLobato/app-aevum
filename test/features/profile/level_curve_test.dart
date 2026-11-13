@@ -30,8 +30,27 @@ void main() {
     expect(rankParaNivel(1), 'F');
     expect(rankParaNivel(9), 'F');
     expect(rankParaNivel(10), 'E');
-    expect(rankParaNivel(30), 'C');
-    expect(rankParaNivel(60), 'S');
-    expect(rankParaNivel(120), 'S');
+    expect(rankParaNivel(24), 'E');
+    expect(rankParaNivel(25), 'D');
+    expect(rankParaNivel(45), 'C');
+    expect(rankParaNivel(70), 'B');
+    expect(rankParaNivel(100), 'A');
+    expect(rankParaNivel(139), 'A');
+    expect(rankParaNivel(140), 'S');
+  });
+
+  test('XP por nível = 480 + 10 × nível; níveis mínimos dos exames', () {
+    expect(curve.xpParaProximoNivel(1), 490);
+    expect(curve.xpParaProximoNivel(10), 580);
+    expect(curve.xpParaProximoNivel(139), 1870);
+    // XP total para entrar nos níveis mínimos de cada rank.
+    expect(curve.xpNoInicioDoNivel(10), 4770);
+    expect(curve.xpNoInicioDoNivel(25), 14520);
+    expect(curve.xpNoInicioDoNivel(45), 31020);
+    expect(curve.xpNoInicioDoNivel(70), 57270);
+    expect(curve.xpNoInicioDoNivel(100), 97020);
+    expect(curve.xpNoInicioDoNivel(140), 164020);
+    expect(['E', 'D', 'C', 'B', 'A', 'S'].map(nivelMinimoDoRank),
+        [10, 25, 45, 70, 100, 140]);
   });
 }

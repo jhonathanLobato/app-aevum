@@ -2,6 +2,7 @@ import 'package:drift/drift.dart';
 
 import '../../../database/app_database.dart'
     hide WorkoutSession, Mission, Achievement;
+import '../../../database/watch_tables.dart';
 import '../../achievements/domain/achievement.dart';
 import '../../achievements/domain/achievement_repository.dart';
 import '../../missions/domain/mission.dart';
@@ -40,16 +41,13 @@ class DriftWorkoutSessionRepository implements WorkoutSessionRepository {
   }
 
   @override
-  Stream<WorkoutSession?> watchSession(int sessionId) async* {
-    yield await _carregarSessao(sessionId);
-    yield* _db
-        .tableUpdates(TableUpdateQuery.onAllTables([
-          _db.workoutSessions,
-          _db.setEntries,
-          _db.exercises,
-          _db.finishedExercises,
-        ]))
-        .asyncMap((_) => _carregarSessao(sessionId));
+  Stream<WorkoutSession?> watchSession(int sessionId) {
+    return _db.observar([
+      _db.workoutSessions,
+      _db.setEntries,
+      _db.exercises,
+      _db.finishedExercises,
+    ], () => _carregarSessao(sessionId));
   }
 
   Future<WorkoutSession?> _carregarSessao(int sessionId) async {

@@ -7,6 +7,7 @@ import 'package:gym_system/database/app_database.dart' hide Mission;
 import 'package:gym_system/database/database_provider.dart';
 import 'package:gym_system/features/missions/presentation/missions_screen.dart';
 import 'package:gym_system/features/profile/data/profile_repository_impl.dart';
+import 'package:gym_system/features/rank_exam/data/tables/rank_exam_table.dart';
 import 'package:gym_system/features/workouts/presentation/workout_session_providers.dart';
 
 AppDatabase _memoryDb() => AppDatabase.forTesting(NativeDatabase.memory());
@@ -95,18 +96,47 @@ void main() {
     await _finish(tester, db);
   });
 
-  testWidgets('mostra o exame de rank ativo com os requisitos', (tester) async {
+  testWidgets('resumo do exame em andamento leva para a tela de Rank',
+      (tester) async {
     final db = _memoryDb();
     await DriftProfileRepository(db).addXp(1); // cria o usuário
+    await programar(db, 3);
     await db.into(db.rankExams).insert(RankExamsCompanion.insert(
-        rankAlvo: 'E', inicio: DateTime.now(), prazoDias: 21));
+        rankAlvo: 'E', inicio: DateTime.now(), prazoDias: 35));
     await _pump(tester, db);
 
-    await tester.ensureVisible(find.text('EXAME DE RANK'));
-    expect(find.text('EXAME DE RANK'), findsOneWidget);
-    expect(find.text('0 / 12'), findsOneWidget); // treinos do exame F→E
-    expect(find.text('ESCOLHER 3 ATIVIDADES EXTRAS'), findsOneWidget);
+    await tester.ensureVisible(find.byKey(const Key('rank_card')));
+    expect(find.text('EXAME PARA E EM ANDAMENTO'), findsOneWidget);
+    // Só um resumo: os requisitos ficam na tela de Rank.
+    expect(find.textContaining('TREINOS PROGRAMADOS ('), findsNothing);
 
+    await _finish(tester, db);
+  });
+
+  testWidgets('resumo do exame disponível mostra até quando iniciar',
+      (tester) async {
+    final db = _memoryDb();
+    await DriftProfileRepository(db).addXp(1);
+    await db.into(db.rankExams).insert(RankExamsCompanion.insert(
+        rankAlvo: 'E',
+        inicio: DateTime.now(),
+        prazoDias: 35,
+        status: const Value(RankExamStatus.disponivel)));
+    await _pump(tester, db);
+
+    await tester.ensureVisible(find.byKey(const Key('rank_card')));
+    expect(find.text('EXAME PARA E DISPONÍVEL'), findsOneWidget);
+    expect(find.textContaining('Inicie até'), findsOneWidget);
+
+    await _finish(tester, db);
+  });
+
+  testWidgets('sem exame disponível o card de rank não aparece em Missões',
+      (tester) async {
+    final db = _memoryDb();
+    await DriftProfileRepository(db).addXp(1);
+    await _pump(tester, db);
+    expect(find.byKey(const Key('rank_card')), findsNothing);
     await _finish(tester, db);
   });
 

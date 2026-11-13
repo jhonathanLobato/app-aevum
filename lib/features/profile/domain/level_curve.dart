@@ -1,5 +1,3 @@
-import 'dart:math';
-
 /// Curva de progressão de nível, isolada para poder ser trocada sem alterar
 /// o resto do app (seção 9 do documento de design: "essa fórmula NÃO deve
 /// ser considerada definitiva").
@@ -7,7 +5,7 @@ class LevelCurve {
   const LevelCurve();
 
   /// XP necessário para sair do [nivel] atual e alcançar o próximo.
-  int xpParaProximoNivel(int nivel) => (1000 * pow(nivel, 1.2)).round();
+  int xpParaProximoNivel(int nivel) => 480 + 10 * nivel;
 
   /// XP total acumulado necessário para ENTRAR no [nivel] (início do nível).
   int xpNoInicioDoNivel(int nivel) {
@@ -53,32 +51,32 @@ class LevelInfo {
 
 /// Distribuição de rank por nível (seção 10), também configurável.
 String rankParaNivel(int nivel) {
-  if (nivel >= 60) return 'S';
-  if (nivel >= 50) return 'A';
-  if (nivel >= 40) return 'B';
-  if (nivel >= 30) return 'C';
-  if (nivel >= 20) return 'D';
+  if (nivel >= 140) return 'S';
+  if (nivel >= 100) return 'A';
+  if (nivel >= 70) return 'B';
+  if (nivel >= 45) return 'C';
+  if (nivel >= 25) return 'D';
   if (nivel >= 10) return 'E';
   return 'F';
 }
 
 /// Ordem de evolução dos ranks (seção 10), do mais baixo ao mais alto.
-/// Nível mínimo para liberar o exame que leva ao [rank] (curva de ranks
-/// original: E=10, D=20, C=30, B=40, A=50, S=60).
+/// Nível mínimo para liberar o exame que leva ao [rank]:
+/// E=10, D=25, C=45, B=70, A=100, S=140.
 int nivelMinimoDoRank(String rank) {
   switch (rank.toUpperCase()) {
     case 'E':
       return 10;
     case 'D':
-      return 20;
+      return 25;
     case 'C':
-      return 30;
+      return 45;
     case 'B':
-      return 40;
+      return 70;
     case 'A':
-      return 50;
+      return 100;
     case 'S':
-      return 60;
+      return 140;
     default:
       return 1;
   }

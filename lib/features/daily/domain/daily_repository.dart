@@ -34,5 +34,13 @@ abstract class DailyRepository {
   /// Dias da semana (1..7) com treino programado.
   Stream<Set<int>> watchProgramacao();
 
-  Future<void> alternarDiaDeTreino(int weekday);
+  /// Liga/desliga o dia de treino. Com um exame de rank ativo a programação
+  /// pode ganhar dias, mas não perder: retorna `false` se a remoção foi
+  /// bloqueada por isso.
+  Future<bool> alternarDiaDeTreino(int weekday);
+
+  /// Grava a programação inteira de uma vez ([dias] = 1..7). Com um exame de
+  /// rank em andamento só pode ganhar dias: retorna `false` (sem salvar nada)
+  /// se alguma remoção for bloqueada.
+  Future<bool> salvarProgramacao(Set<int> dias);
 }

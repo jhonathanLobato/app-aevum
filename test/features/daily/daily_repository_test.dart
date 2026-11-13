@@ -6,6 +6,7 @@ import 'package:gym_system/features/daily/data/daily_repository_impl.dart';
 import 'package:gym_system/features/daily/domain/daily_models.dart';
 import 'package:gym_system/features/daily/domain/daily_values.dart';
 import 'package:gym_system/features/profile/data/profile_repository_impl.dart';
+import 'package:gym_system/features/rank_exam/data/tables/rank_exam_table.dart';
 import 'package:gym_system/features/profile/domain/level_curve.dart';
 
 void main() {
@@ -137,7 +138,7 @@ void main() {
   });
 
   group('penalidade (virada do dia)', () {
-    Future<void> abrirNoDia(DateTime dia, {int xpInicial = 1500}) async {
+    Future<void> abrirNoDia(DateTime dia, {int xpInicial = 2500}) async {
       agora = dia;
       await perfil.addXp(xpInicial);
       await repo.processarVirada(); // primeiro uso: só cria o dia de hoje
@@ -157,7 +158,7 @@ void main() {
       final aplicadas = await repo.processarVirada();
 
       expect(aplicadas.single.xpPerdido, 100);
-      expect(await xp(), 1400);
+      expect(await xp(), 2400);
       expect(await repo.watchPenalidadePendente().first, 100);
       await repo.confirmarPenalidades();
       expect(await repo.watchPenalidadePendente().first, 0);
@@ -168,7 +169,7 @@ void main() {
       agora = DateTime(2026, 3, 12, 9);
       await repo.processarVirada();
       expect(await repo.processarVirada(), isEmpty);
-      expect(await xp(), 1400);
+      expect(await xp(), 2400);
     });
 
     test('missão cumprida ou dia de folga não perdem XP', () async {
@@ -189,7 +190,7 @@ void main() {
       final aplicadas = await repo.processarVirada();
 
       expect(aplicadas.fold<int>(0, (s, p) => s + p.xpPerdido), 300);
-      expect(await xp(), 1200);
+      expect(await xp(), 2200);
     });
 
     test('a nova semana zera o teto', () async {
@@ -198,7 +199,7 @@ void main() {
       // Falharam: sex (semana 1), sáb, dom (semana 1), seg (semana 2) = 4 dias.
       final aplicadas = await repo.processarVirada();
       expect(aplicadas.length, 4);
-      expect(await xp(), 1500 - 400);
+      expect(await xp(), 2500 - 400);
     });
 
     test('o XP nunca fica abaixo do início do nível (não cai de nível)',
@@ -250,11 +251,53 @@ void main() {
       expect(dias.where((d) => d.ehHoje).single.dia.day, 11);
     });
 
+    test('salvarProgramacao grava o conjunto inteiro e persiste', () async {
+      expect(await repo.salvarProgramacao({1, 3, 5}), isTrue);
+      expect(await repo.watchProgramacao().first, {1, 3, 5});
+
+      // Outra instância lendo o mesmo banco (app reaberto) vê os dias.
+      final outra = DriftDailyRepository(db, perfil);
+      expect(await outra.watchProgramacao().first, {1, 3, 5});
+
+      expect(await repo.salvarProgramacao({2, 3}), isTrue); // troca de dias
+      expect(await repo.watchProgramacao().first, {2, 3});
+      expect(await repo.salvarProgramacao({}), isTrue);
+      expect(await repo.watchProgramacao().first, isEmpty);
+    });
+
+    test('durante o exame, salvar só pode adicionar dias', () async {
+      await repo.salvarProgramacao({1, 3});
+      await db.into(db.rankExams).insert(RankExamsCompanion.insert(
+          rankAlvo: 'E', inicio: agora, prazoDias: 35));
+
+      expect(await repo.salvarProgramacao({1}), isFalse); // remove o 3
+      expect(await repo.watchProgramacao().first, {1, 3}); // nada mudou
+      expect(await repo.salvarProgramacao({1, 3, 5}), isTrue);
+      expect(await repo.watchProgramacao().first, {1, 3, 5});
+    });
+
     test('alternar dia de treino liga e desliga', () async {
       await repo.alternarDiaDeTreino(3);
       await repo.alternarDiaDeTreino(5);
       await repo.alternarDiaDeTreino(3);
       expect(await repo.watchProgramacao().first, {5});
+    });
+
+    test('com exame de rank ativo a programação ganha dias mas não perde',
+        () async {
+      await repo.alternarDiaDeTreino(1);
+      await repo.alternarDiaDeTreino(3);
+      await db.into(db.rankExams).insert(RankExamsCompanion.insert(
+          rankAlvo: 'E', inicio: agora, prazoDias: 35));
+
+      expect(await repo.alternarDiaDeTreino(5), isTrue); // adicionar pode
+      expect(await repo.alternarDiaDeTreino(1), isFalse); // remover não
+      expect(await repo.watchProgramacao().first, {1, 3, 5});
+
+      // Sem exame ativo (ex.: aguardando), remover volta a ser permitido.
+      await (db.update(db.rankExams)).write(
+          const RankExamsCompanion(status: Value(RankExamStatus.disponivel)));
+      expect(await repo.alternarDiaDeTreino(1), isTrue);
     });
   });
 }

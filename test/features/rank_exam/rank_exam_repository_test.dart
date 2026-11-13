@@ -15,31 +15,47 @@ void main() {
   late DriftProfileRepository perfil;
   late DriftRankExamRepository repo;
 
-  // Segunda-feira 02/03/2026, 10h.
+  // Segunda-feira 02/03/2026, 10h: o usuário entrou no rank F em 01/01, então
+  // os 2 meses mínimos no F já passaram.
   final inicio = DateTime(2026, 3, 2, 10);
+  final entrouNoRank = DateTime(2026, 1, 1, 9);
   var agora = inicio;
+
+  const extras = [SportType.ciclismo, SportType.skate, SportType.futebol];
 
   setUp(() {
     agora = inicio;
     db = AppDatabase.forTesting(NativeDatabase.memory());
-    perfil = DriftProfileRepository(db);
+    perfil = DriftProfileRepository(db, agora: () => agora);
     repo = DriftRankExamRepository(db, perfil, agora: () => agora);
   });
 
   tearDown(() => db.close());
 
-  Future<void> irParaNivel(int nivel) =>
-      perfil.addXp(const LevelCurve().xpNoInicioDoNivel(nivel));
+  /// Cria o usuário em 01/01 (entrada no rank F) já com XP para o [nivel].
+  Future<void> usuarioNoNivel(int nivel) async {
+    final relogio = agora;
+    agora = entrouNoRank;
+    await perfil.addXp(const LevelCurve().xpNoInicioDoNivel(nivel));
+    agora = relogio;
+  }
 
-  Future<void> treinosConcluidos(int n, DateTime quando) async {
-    for (var i = 0; i < n; i++) {
-      await db.into(db.workoutSessions).insert(WorkoutSessionsCompanion.insert(
-            nome: 'Treino $i',
-            status: WorkoutSessionStatus.concluido,
-            data: Value(quando),
-          ));
+  /// Dias de treino programados (1=segunda … 7=domingo).
+  Future<void> programar(List<int> dias) async {
+    await db.delete(db.scheduleDays).go();
+    for (final d in dias) {
+      await db
+          .into(db.scheduleDays)
+          .insert(ScheduleDaysCompanion.insert(weekday: Value(d)));
     }
   }
+
+  Future<void> treinoNoDia(DateTime dia) =>
+      db.into(db.workoutSessions).insert(WorkoutSessionsCompanion.insert(
+            nome: 'Treino',
+            status: WorkoutSessionStatus.concluido,
+            data: Value(DateTime(dia.year, dia.month, dia.day, 18)),
+          ));
 
   Future<void> atividade(SportType tipo, DateTime quando, {int min = 30}) =>
       db.into(db.sportActivities).insert(SportActivitiesCompanion.insert(
@@ -56,120 +72,269 @@ void main() {
     }
   }
 
-  group('liberação', () {
-    test('abaixo do nível mínimo não libera exame', () async {
-      await irParaNivel(9);
+  Future<void> folga(DateTime dia) =>
+      db.into(db.dailyDays).insert(DailyDaysCompanion.insert(
+          dia: chaveDoDia(dia), folga: const Value(true)));
+
+  Future<RankStatus> status() async => (await repo.watchStatus().first)!;
+
+  /// Libera o exame F→E e o inicia na hora com [extras].
+  Future<void> liberarEIniciar() async {
+    await programar([1, 3, 5]);
+    await usuarioNoNivel(10);
+    await repo.sincronizar();
+    expect(await repo.iniciarExame(extras), IniciarExameResultado.iniciado);
+  }
+
+  group('liberação: nível E tempo mínimo no rank', () {
+    test('nível ok mas sem o tempo mínimo: continua bloqueado', () async {
+      await programar([1, 3, 5]);
+      await usuarioNoNivel(10);
+      agora = DateTime(2026, 2, 28, 10); // faltam 2 dias para 2 meses
+
       expect(await repo.sincronizar(), isEmpty);
-      expect(await repo.watchAtivo().first, isNull);
+      final s = await status();
+      expect(s.fase, RankExamPhase.bloqueado);
+      expect(s.niveisFaltando, 0);
+      expect(s.diasParaLiberarPorTempo(agora), 1);
+      expect(s.mesesMinimos, 2);
+
+      agora = DateTime(2026, 3, 1, 10); // 2 meses completos
+      final eventos = await repo.sincronizar();
+      expect(eventos.single.tipo, RankExamEventType.liberado);
+      expect((await status()).fase, RankExamPhase.disponivel);
     });
 
-    test('no nível 10 libera o exame F→E, uma única vez', () async {
-      await irParaNivel(10);
+    test('tempo ok mas sem o nível mínimo: continua bloqueado', () async {
+      await programar([1, 3, 5]);
+      await usuarioNoNivel(9);
+
+      expect(await repo.sincronizar(), isEmpty);
+      final s = await status();
+      expect(s.fase, RankExamPhase.bloqueado);
+      expect(s.niveisFaltando, 1);
+      expect(s.diasParaLiberarPorTempo(agora), 0);
+    });
+
+    test('libera quando os DOIS são cumpridos, uma única vez', () async {
+      await programar([1, 3, 5]);
+      await usuarioNoNivel(10);
 
       final eventos = await repo.sincronizar();
       expect(eventos.single.tipo, RankExamEventType.liberado);
       expect(eventos.single.rankAlvo, 'E');
       expect(await repo.sincronizar(), isEmpty);
 
-      final e = (await repo.watchAtivo().first)!;
-      expect(e.rankAtual, 'F');
-      expect(e.rankAlvo, 'E');
-      expect(e.treinosNecessarios, 12);
-      expect(e.modalidadesNecessarias, 3);
-      expect(e.registrosPorModalidade, 1);
-      expect(e.diasRestantes, 21);
-      expect(e.missoesNecessarias, 16); // 75% de 21 dias, arredondado p/ cima
+      final s = await status();
+      expect(s.fase, RankExamPhase.disponivel);
+      expect(s.liberadoEm, agora);
+      expect(s.inicioAutomaticoEm, DateTime(2026, 3, 9));
     });
 
     test('o nível sobe pelo XP mas o rank só muda pelo exame', () async {
-      await irParaNivel(25);
+      await programar([1, 3, 5]);
+      await usuarioNoNivel(30);
       expect((await perfil.watchCurrentUser().first)!.rank, 'F');
       await repo.sincronizar();
-      expect((await repo.watchAtivo().first)!.rankAlvo, 'E');
+      expect((await status()).proximoRank, 'E');
     });
 
-    test('tabela de exames: requisitos por rank', () {
+    test('usuário existente sem registro de entrada conta a partir de hoje',
+        () async {
+      await programar([1, 3, 5]);
+      await usuarioNoNivel(10);
+      await (db.update(db.users))
+          .write(const UsersCompanion(rankDesde: Value<DateTime?>(null)));
+
+      expect(await repo.sincronizar(), isEmpty); // 2 meses só a partir de hoje
+      final u = await db.select(db.users).getSingle();
+      expect(u.rankDesde, agora);
+      agora = DateTime(2026, 5, 2, 10);
+      expect(
+          (await repo.sincronizar()).single.tipo, RankExamEventType.liberado);
+    });
+
+    test('tempo mínimo por rank: F2, E3, D5, C7, B9, A10 meses', () {
+      expect(RankExamValues.mesesMinimosNoRank,
+          {'F': 2, 'E': 3, 'D': 5, 'C': 7, 'B': 9, 'A': 10});
+    });
+
+    test('tabela de exames: prazo, % de treinos, % de missão e extras', () {
       const s = RankExamValues.specs;
-      expect([for (final r in 'EDCBAS'.split('')) s[r]!.treinos],
-          [12, 18, 26, 36, 48, 64]);
-      expect([for (final r in 'EDCBAS'.split('')) s[r]!.prazoDias],
-          [21, 30, 45, 60, 75, 90]);
-      expect([for (final r in 'EDCBAS'.split('')) s[r]!.modalidades],
-          [3, 3, 3, 4, 4, 4]);
-      expect([for (final r in 'EDCBAS'.split('')) s[r]!.registrosPorModalidade],
-          [1, 2, 2, 2, 3, 3]);
+      List<T> col<T>(T Function(RankExamSpec) f) =>
+          [for (final r in 'EDCBAS'.split('')) f(s[r]!)];
+      expect(col((e) => e.prazoDias), [35, 50, 70, 90, 110, 140]);
+      expect(col((e) => e.fracaoTreinos), [.80, .80, .85, .85, .90, .95]);
+      expect(col((e) => e.fracaoMissaoDiaria), [.75, .75, .80, .80, .85, .90]);
+      expect(col((e) => e.modalidades), [3, 3, 3, 4, 4, 4]);
+      expect(col((e) => e.registrosPorModalidade), [1, 2, 2, 2, 3, 3]);
     });
   });
 
-  group('progresso', () {
+  group('início do exame', () {
     setUp(() async {
-      await irParaNivel(10);
-      await repo.sincronizar();
+      await programar([1, 3, 5]);
+      await usuarioNoNivel(10);
+      await repo.sincronizar(); // libera
     });
 
-    test('só conta treinos concluídos e atividades 30+ min do período',
+    test('o exame não começa sozinho ao ser liberado', () async {
+      final s = await status();
+      expect(s.fase, RankExamPhase.disponivel);
+      expect(s.exame, isNull);
+    });
+
+    test('iniciar com as atividades escolhidas: o prazo conta do início',
         () async {
-      await treinosConcluidos(2, inicio.add(const Duration(days: 1)));
-      await treinosConcluidos(5, inicio.subtract(const Duration(days: 3)));
-      await repo.escolherModalidades(
-          [SportType.ciclismo, SportType.skate, SportType.futebol]);
+      agora = inicio.add(const Duration(days: 3));
+      expect(await repo.iniciarExame(extras), IniciarExameResultado.iniciado);
+
+      final s = await status();
+      expect(s.fase, RankExamPhase.emAndamento);
+      final e = s.exame!;
+      expect(e.inicio, agora);
+      expect(e.diasRestantes, 35);
+      expect(e.modalidades.map((m) => m.tipo), extras);
+    });
+
+    test('exige a quantidade certa de atividades extras', () async {
+      expect(await repo.iniciarExame([SportType.skate]),
+          IniciarExameResultado.modalidadesInvalidas);
+      expect(await repo.iniciarExame(SportType.values),
+          IniciarExameResultado.modalidadesInvalidas);
+      expect((await status()).fase, RankExamPhase.disponivel);
+    });
+
+    test('exige 2+ dias de treino programados', () async {
+      await programar([3]);
+      expect(await repo.iniciarExame(extras),
+          IniciarExameResultado.precisaProgramar);
+      expect((await status()).precisaProgramar, isTrue);
+      await programar([3, 5]);
+      expect(await repo.iniciarExame(extras), IniciarExameResultado.iniciado);
+    });
+
+    test('sem exame disponível não há o que iniciar', () async {
+      await repo.iniciarExame(extras);
+      expect(
+          await repo.iniciarExame(extras), IniciarExameResultado.indisponivel);
+    });
+
+    test('dentro da janela de 7 dias nada acontece sozinho', () async {
+      agora = inicio.add(const Duration(days: 6, hours: 10));
+      expect(await repo.sincronizar(), isEmpty);
+      expect((await status()).fase, RankExamPhase.disponivel);
+    });
+
+    test('no 8º dia começa sozinho com as modalidades mais registradas',
+        () async {
+      for (var i = 0; i < 3; i++) {
+        await atividade(SportType.futebol, inicio.subtract(Duration(days: i)));
+      }
+      for (var i = 0; i < 2; i++) {
+        await atividade(SportType.skate, inicio.subtract(Duration(days: i)));
+      }
+      await atividade(SportType.muayThaiBoxe, inicio);
+      await atividade(SportType.ciclismo, inicio); // empata: vale o catálogo
+
+      agora = DateTime(2026, 3, 9, 8);
+      final eventos = await repo.sincronizar();
+
+      expect(eventos.single.tipo, RankExamEventType.iniciadoAutomaticamente);
+      expect(eventos.single.modalidades,
+          [SportType.futebol, SportType.skate, SportType.ciclismo]);
+      final s = await status();
+      expect(s.fase, RankExamPhase.emAndamento);
+      expect(s.exame!.inicio, agora);
+    });
+
+    test('sem nenhum registro, escolhe as primeiras do catálogo', () async {
+      agora = DateTime(2026, 3, 9, 8);
+      final eventos = await repo.sincronizar();
+      expect(eventos.single.modalidades, [
+        SportType.corridaCaminhada,
+        SportType.ciclismo,
+        SportType.muayThaiBoxe,
+      ]);
+    });
+
+    test('o início automático espera ter 2+ dias de treino programados',
+        () async {
+      await programar([3]);
+      agora = DateTime(2026, 3, 12, 8);
+      expect(await repo.sincronizar(), isEmpty);
+      expect((await status()).fase, RankExamPhase.disponivel);
+
+      await programar([3, 5]);
+      expect((await repo.sincronizar()).single.tipo,
+          RankExamEventType.iniciadoAutomaticamente);
+    });
+  });
+
+  group('metas', () {
+    setUp(liberarEIniciar);
+
+    test('meta de treinos = ⌈% × treinos programados no período⌉', () async {
+      final e = (await status()).exame!;
+      // 35 dias = 5 semanas × 3 = 15 programados; 80% → 12.
+      expect(e.treinosProgramadosNoPeriodo, 15);
+      expect(e.treinosNecessarios, 12);
+      expect(e.missoesNecessarias, 27); // ⌈75% × 35⌉
+    });
+
+    test('muda com a programação (pode ganhar dias durante o exame)', () async {
+      await programar([1, 2, 3, 5]); // 4/semana → 20 programados
+      final e = (await status()).exame!;
+      expect(e.treinosProgramadosNoPeriodo, 20);
+      expect(e.treinosNecessarios, 16);
+    });
+
+    test('folga em dia de treino tira o treino da meta e o dia da missão',
+        () async {
+      await folga(DateTime(2026, 3, 2)); // segunda: dia de treino
+      await folga(DateTime(2026, 3, 4)); // quarta: dia de treino
+      await folga(DateTime(2026, 3, 3)); // terça: sem treino
+
+      final e = (await status()).exame!;
+      expect(e.treinosProgramadosNoPeriodo, 13);
+      expect(e.treinosNecessarios, 11); // ⌈0,8 × 13⌉ = ⌈10,4⌉
+      expect(e.diasValidos, 32);
+      expect(e.missoesNecessarias, 24); // ⌈0,75 × 32⌉
+    });
+
+    test('só conta treinos concluídos do período, um por dia, e extras 30+ min',
+        () async {
+      await treinoNoDia(inicio.add(const Duration(days: 1)));
+      await treinoNoDia(inicio.add(const Duration(days: 1))); // mesmo dia
+      await treinoNoDia(inicio.subtract(const Duration(days: 3))); // antes
       await atividade(SportType.ciclismo, inicio.add(const Duration(days: 1)));
       await atividade(SportType.skate, inicio.add(const Duration(days: 1)),
-          min: 29); // curta demais
+          min: 29);
       await atividade(SportType.basquete, inicio.add(const Duration(days: 1)));
-      // Fora do período.
-      await atividade(
-          SportType.futebol, inicio.subtract(const Duration(days: 2)));
 
-      final e = (await repo.watchAtivo().first)!;
-      expect(e.treinosFeitos, 2);
-      expect(e.modalidadesCumpridas, 1); // só o ciclismo
+      final e = (await status()).exame!;
+      expect(e.treinosFeitos, 1);
+      expect(e.modalidadesCumpridas, 1);
       expect(e.modalidades.map((m) => m.registros), [1, 0, 0]);
-    });
-
-    test('escolhe no máximo a quantidade exigida de modalidades', () async {
-      await repo.escolherModalidades(SportType.values);
-      final e = (await repo.watchAtivo().first)!;
-      expect(e.modalidades, hasLength(3));
-      expect(e.modalidadesEscolhidas, isTrue);
-    });
-
-    test('folgas saem do cálculo dos 75%', () async {
-      for (var i = 0; i < 5; i++) {
-        await db.into(db.dailyDays).insert(DailyDaysCompanion.insert(
-            dia: chaveDoDia(DateTime(2026, 3, 3 + i)),
-            folga: const Value(true)));
-      }
-      final e = (await repo.watchAtivo().first)!;
-      expect(e.diasValidos, 16);
-      expect(e.missoesNecessarias, 12); // 75% de 16
     });
   });
 
-  group('aprovação', () {
-    setUp(() async {
-      await irParaNivel(10);
-      await repo.sincronizar();
-      await repo.escolherModalidades(
-          [SportType.ciclismo, SportType.skate, SportType.futebol]);
-    });
+  group('aprovação e rank up pendente', () {
+    setUp(liberarEIniciar);
 
     Future<void> cumprirTudo() async {
-      final dia = inicio.add(const Duration(days: 2));
-      await treinosConcluidos(12, dia);
-      for (final t in [
-        SportType.ciclismo,
-        SportType.skate,
-        SportType.futebol
-      ]) {
-        await atividade(t, dia);
+      for (var i = 0; i < 12; i++) {
+        await treinoNoDia(inicio.add(Duration(days: i)));
       }
-      await missoesCumpridas(16);
+      for (final t in extras) {
+        await atividade(t, inicio.add(const Duration(days: 2)));
+      }
+      await missoesCumpridas(27);
     }
 
     test('com tudo cumprido, aprova e só então o rank sobe', () async {
       await cumprirTudo();
-      agora = inicio.add(const Duration(days: 10));
+      agora = inicio.add(const Duration(days: 30));
 
       final eventos = await repo.sincronizar();
 
@@ -177,7 +342,7 @@ void main() {
       expect(eventos.single.rankAnterior, 'F');
       expect(eventos.single.rankAlvo, 'E');
       expect((await perfil.watchCurrentUser().first)!.rank, 'E');
-      expect(await repo.watchAtivo().first, isNull);
+      expect((await status()).fase, RankExamPhase.bloqueado);
     });
 
     test('falta 1 requisito: não aprova', () async {
@@ -189,60 +354,114 @@ void main() {
       expect((await perfil.watchCurrentUser().first)!.rank, 'F');
     });
 
-    test('depois de aprovado, o próximo exame só abre no nível do próximo rank',
+    test('RANK UP não exibido volta na próxima abertura até ser confirmado',
         () async {
       await cumprirTudo();
+      agora = inicio.add(const Duration(days: 30));
+      await repo.sincronizar(); // aprova; o app "fecha" antes do overlay
+
+      final proxima = await repo.sincronizar();
+      expect(proxima.single.tipo, RankExamEventType.aprovado);
+      expect(proxima.single.rankAnterior, 'F');
+      expect(proxima.single.rankAlvo, 'E');
+
+      await repo.confirmarRankUp('E');
+      expect(await repo.sincronizar(), isEmpty);
+    });
+
+    test('o próximo exame (D) exige nível 25 E 3 meses no rank E', () async {
+      await cumprirTudo();
+      agora = inicio.add(const Duration(days: 30));
       await repo.sincronizar();
-      expect(await repo.sincronizar(), isEmpty); // nível 10 < 20
-      await irParaNivel(20);
+      await repo.confirmarRankUp('E');
+      final entrouNoE = agora;
+
+      expect(await repo.sincronizar(), isEmpty); // nível 10 < 25
+      await usuarioNoNivel(25);
+      expect(await repo.sincronizar(), isEmpty); // falta o tempo no E
+
+      agora = somarMeses(entrouNoE, 3);
       final eventos = await repo.sincronizar();
       expect(eventos.single.rankAlvo, 'D');
+      expect(eventos.single.tipo, RankExamEventType.liberado);
     });
   });
 
-  group('reinício', () {
-    setUp(() async {
-      await irParaNivel(10);
-      await repo.sincronizar();
-    });
+  group('reinício: nova janela de 7 dias', () {
+    setUp(liberarEIniciar);
 
     test('prazo vencido com requisito incompleto reinicia na hora', () async {
-      await missoesCumpridas(16); // missões OK, falta o resto
-      agora = inicio.add(const Duration(days: 21));
+      for (var i = 0; i < 12; i++) {
+        await treinoNoDia(inicio.add(Duration(days: i)));
+      }
+      await missoesCumpridas(27); // faltam as atividades extras
+      agora = inicio.add(const Duration(days: 35));
 
       final eventos = await repo.sincronizar();
 
       expect(eventos.single.tipo, RankExamEventType.reiniciado);
       expect(eventos.single.motivo, RankExamResetReason.prazo);
-      final e = (await repo.watchAtivo().first)!;
-      expect(e.reinicios, 1);
-      expect(e.diasRestantes, 21);
-      expect(e.treinosFeitos, 0);
+      // Volta a ficar disponível: nova janela, sem atividades escolhidas.
+      final s = await status();
+      expect(s.fase, RankExamPhase.disponivel);
+      expect(s.liberadoEm, agora);
+      expect(s.exame, isNull);
+      final exame = await db.select(db.rankExams).getSingle();
+      expect(exame.reinicios, 1);
+      expect(exame.modalidades, isEmpty);
     });
 
-    test('75% das missões diárias impossível reinicia antes do prazo',
-        () async {
-      // Nenhuma missão cumprida; no dia 7 restam só 15 dias (< 16 exigidos).
-      agora = inicio.add(const Duration(days: 6));
+    test('meta de treinos impossível reinicia antes do prazo', () async {
+      await missoesCumpridas(27);
+      agora = inicio.add(const Duration(days: 30)); // restam 5 dias, meta 12
+
       final eventos = await repo.sincronizar();
 
-      expect(eventos.single.tipo, RankExamEventType.reiniciado);
+      expect(eventos.single.motivo, RankExamResetReason.treinosImpossivel);
+    });
+
+    test('meta da missão diária impossível reinicia antes do prazo', () async {
+      for (var i = 0; i < 12; i++) {
+        await treinoNoDia(inicio.add(Duration(days: i)));
+      }
+      agora = inicio.add(const Duration(days: 9)); // restam 26 dias (< 27)
+
+      final eventos = await repo.sincronizar();
+
       expect(eventos.single.motivo, RankExamResetReason.missaoDiariaImpossivel);
     });
 
     test('ainda possível: não reinicia', () async {
-      agora = inicio.add(const Duration(days: 5)); // restam 16 dias, exige 16
+      agora = inicio.add(const Duration(days: 8));
+      for (var i = 0; i < 12; i++) {
+        await treinoNoDia(inicio.add(Duration(days: i)));
+      }
       expect(await repo.sincronizar(), isEmpty);
     });
 
-    test('depois do reinício, o progresso antigo não conta', () async {
-      await treinosConcluidos(3, inicio.add(const Duration(days: 1)));
-      agora = inicio.add(const Duration(days: 6));
-      await repo.sincronizar(); // reinicia (impossível)
+    test(
+        'depois do reinício dá para iniciar de novo, ou começa sozinho em 7 dias',
+        () async {
+      agora = inicio.add(const Duration(days: 30));
+      await repo.sincronizar(); // reinicia (treinos impossíveis)
+      final reiniciadoEm = agora;
 
-      final e = (await repo.watchAtivo().first)!;
+      // Iniciar manualmente: o progresso antigo não conta.
+      await treinoNoDia(inicio.add(const Duration(days: 1)));
+      expect(await repo.iniciarExame(extras), IniciarExameResultado.iniciado);
+      final e = (await status()).exame!;
       expect(e.treinosFeitos, 0);
-      expect(e.inicio, agora);
+      expect(e.inicio, reiniciadoEm);
+    });
+
+    test('se não iniciar depois do reinício, começa sozinho 7 dias depois',
+        () async {
+      agora = inicio.add(const Duration(days: 30));
+      await repo.sincronizar(); // reinicia
+      agora = agora.add(const Duration(days: 7));
+
+      final eventos = await repo.sincronizar();
+      expect(eventos.single.tipo, RankExamEventType.iniciadoAutomaticamente);
     });
   });
 }

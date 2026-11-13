@@ -18,6 +18,7 @@ import '../features/missions/data/tables/mission_table.dart';
 import '../features/missions/domain/mission.dart';
 import '../features/profile/data/tables/user_table.dart';
 import '../features/profile/domain/app_theme.dart';
+import '../features/profile/domain/level_curve.dart';
 import '../features/profile/domain/player_class.dart';
 import '../features/progression/data/tables/personal_record_table.dart';
 import '../features/progression/domain/personal_record.dart';
@@ -60,7 +61,7 @@ class AppDatabase extends _$AppDatabase {
   final bool _semearBiblioteca;
 
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 7;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -90,6 +91,26 @@ class AppDatabase extends _$AppDatabase {
             await customStatement(
                 "UPDATE missions SET status = 'expirada' WHERE tipo = 'diaria' AND status = 'ativa'");
           }
+          if (from < 6) {
+            // v6: XP por atividade extra, rank-up pendente e nova curva de
+            // nível (480 + 10 × nível).
+            await m.addColumn(sportActivities, sportActivities.xpConcedido);
+            if (from >= 5) await m.addColumn(rankExams, rankExams.visto);
+            await _recalcularNivelDosUsuarios();
+          }
+          if (from < 7) {
+            // v7: tempo mínimo por rank e exame iniciado pelo usuário.
+            if (await _tabelaExiste('users')) {
+              await m.addColumn(users, users.rankDesde);
+              // Quem já existe conta o tempo no rank a partir de hoje.
+              await customStatement(
+                  'UPDATE users SET rank_desde = ${DateTime.now().millisecondsSinceEpoch ~/ 1000}');
+            }
+            if (await _tabelaExiste('rank_exams')) {
+              await customStatement(
+                  "UPDATE rank_exams SET status = 'disponivel' WHERE status = 'aguardando'");
+            }
+          }
         },
         beforeOpen: (details) async {
           await customStatement('PRAGMA foreign_keys = ON');
@@ -98,6 +119,27 @@ class AppDatabase extends _$AppDatabase {
           }
         },
       );
+}
+
+extension on AppDatabase {
+  /// Recalcula o nível pelo XP total com a curva atual (o rank não muda).
+  Future<bool> _tabelaExiste(String nome) async {
+    final r = await customSelect(
+        "SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?",
+        variables: [Variable.withString(nome)]).get();
+    return r.isNotEmpty;
+  }
+
+  Future<void> _recalcularNivelDosUsuarios() async {
+    if (!await _tabelaExiste('users')) return;
+    for (final u in await select(users).get()) {
+      final nivel = const LevelCurve().calcularNivel(u.xp).nivel;
+      if (nivel != u.nivel) {
+        await (update(users)..where((x) => x.id.equals(u.id)))
+            .write(UsersCompanion(nivel: Value(nivel)));
+      }
+    }
+  }
 }
 
 LazyDatabase _openConnection() {

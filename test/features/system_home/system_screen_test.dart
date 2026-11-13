@@ -60,6 +60,11 @@ GoRouter _router() => GoRouter(
               const Scaffold(body: Text('MISSAO_DIARIA_DESTINO')),
         ),
         GoRoute(
+          path: '/rank',
+          builder: (context, state) =>
+              const Scaffold(body: Text('RANK_DESTINO')),
+        ),
+        GoRoute(
           path: '/profile',
           builder: (context, state) =>
               const Scaffold(body: Text('PERFIL_DESTINO')),
@@ -348,19 +353,23 @@ void main() {
       await _finish(tester, db);
     });
 
-    testWidgets('exame de rank aparece só quando está ativo', (tester) async {
+    testWidgets('resumo do exame aparece só com exame disponível/em andamento',
+        (tester) async {
       final db = _memoryDb();
       await _pumpHome(tester, db);
-      expect(find.text('EXAME DE RANK'), findsNothing);
+      expect(find.byKey(const Key('rank_card')), findsNothing);
       await _finish(tester, db);
 
       final db2 = _memoryDb();
       await DriftProfileRepository(db2).addXp(1);
       await db2.into(db2.rankExams).insert(RankExamsCompanion.insert(
-          rankAlvo: 'E', inicio: DateTime.now(), prazoDias: 21));
+          rankAlvo: 'E', inicio: DateTime.now(), prazoDias: 35));
       await _pumpHome(tester, db2);
-      expect(find.text('EXAME DE RANK'), findsOneWidget);
-      expect(find.text('TREINOS DE ACADEMIA'), findsOneWidget);
+      expect(find.text('EXAME PARA E EM ANDAMENTO'), findsOneWidget);
+      await tester.ensureVisible(find.text('EXAME PARA E EM ANDAMENTO'));
+      await tester.tap(find.text('EXAME PARA E EM ANDAMENTO'));
+      await tester.pumpAndSettle();
+      expect(find.text('RANK_DESTINO'), findsOneWidget);
       await _finish(tester, db2);
     });
   });

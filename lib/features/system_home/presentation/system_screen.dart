@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../../design_system/system_entrance.dart';
 import '../../../design_system/system_motion.dart';
 import '../../../design_system/system_scaffold.dart';
 import '../../../design_system/system_spacing.dart';
+import '../../rank_exam/domain/rank_exam.dart';
 import '../../rank_exam/presentation/rank_exam_providers.dart';
-import '../../rank_exam/presentation/widgets/rank_exam_card.dart';
+import '../../rank_exam/presentation/widgets/rank_summary_card.dart';
 import 'widgets/home_daily_panel.dart';
 import 'widgets/home_identity_panel.dart';
 import 'widgets/home_penalty_banner.dart';
@@ -27,8 +27,6 @@ class SystemScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final exameAtivo = ref.watch(rankExamProvider).valueOrNull != null;
-
     return SystemScaffold(
       title: 'SYSTEM',
       subtitle: 'PAINEL DO JOGADOR',
@@ -47,11 +45,14 @@ class SystemScreen extends ConsumerWidget {
             delay: SystemDurations.staggerStep * 2,
             child: const HomeTodayPanel(),
           ),
-          if (exameAtivo) ...[
-            RankExamCard(
-                compacto: true, onAbrir: () => context.go('/missions')),
+          // Resumo do exame (só com exame disponível/em andamento); leva à
+          // tela de Rank.
+          const RankSummaryCard(somenteComExame: true),
+          if (ref.watch(rankStatusProvider).valueOrNull?.fase ==
+                  RankExamPhase.disponivel ||
+              ref.watch(rankStatusProvider).valueOrNull?.fase ==
+                  RankExamPhase.emAndamento)
             const SizedBox(height: SystemSpacing.lg),
-          ],
           SystemEntrance(
             delay: SystemDurations.staggerStep * 3,
             child: const HomeWeekPanel(),

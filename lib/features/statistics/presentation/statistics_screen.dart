@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../design_system/system_button.dart';
-
 import '../../../design_system/system_colors.dart';
 import '../../../design_system/system_empty_state.dart';
 import '../../../design_system/system_entrance.dart';
@@ -13,21 +11,25 @@ import '../../../design_system/system_scaffold.dart';
 import '../../../design_system/system_spacing.dart';
 import '../../../design_system/system_stat_box.dart';
 import '../../../design_system/system_text_styles.dart';
+import '../../rank_exam/presentation/widgets/rank_summary_card.dart';
 import '../domain/statistics.dart';
 import 'statistics_providers.dart';
-import 'widgets/player_attributes_panel.dart';
+// Atributos escondidos por enquanto (serão usados depois):
+// import 'widgets/player_attributes_panel.dart';
 import 'widgets/weekly_report_card.dart';
 
-/// Tela STATUS ("ficha de evolução"): relatório semanal, estatísticas
-/// globais, os 3 atributos derivados do MVP, atalhos para Histórico e
-/// Conquistas e o detalhe por exercício (a identidade fica na tela Sistema). É a aba STATUS (rota `/statistics`).
+/// Tela STATUS ("ficha de evolução"), em quadros, nesta ordem: Rank (abre a
+/// tela de Rank), Relatório semanal, Histórico/Conquistas e as estatísticas
+/// globais. A identidade fica na tela Sistema.
+///
+/// Os atributos (Força/Resistência/Constância) estão comentados abaixo — o
+/// código e o `PlayerAttributesPanel` continuam no projeto para uso futuro.
 class StatisticsScreen extends ConsumerWidget {
   const StatisticsScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final globalAsync = ref.watch(globalStatisticsProvider);
-    final porExercicioAsync = ref.watch(exerciseStatisticsProvider);
 
     return SystemScaffold(
       title: 'STATUS',
@@ -35,10 +37,44 @@ class StatisticsScreen extends ConsumerWidget {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const SystemEntrance(child: WeeklyReportCard()),
+          const SystemEntrance(child: RankSummaryCard()),
+          const SizedBox(height: SystemSpacing.lg),
+          const SystemEntrance(
+            delay: SystemDurations.staggerStep,
+            child: WeeklyReportCard(),
+          ),
           const SizedBox(height: SystemSpacing.lg),
           SystemEntrance(
-            delay: SystemDurations.staggerStep,
+            delay: SystemDurations.staggerStep * 2,
+            child: SystemPanel(
+              padding: EdgeInsets.zero,
+              child: Column(
+                children: [
+                  _Entrada(
+                    chave: const Key('entrada_historico'),
+                    icone: Icons.history_rounded,
+                    titulo: 'HISTÓRICO',
+                    detalhe: 'Treinos e atividades por mês',
+                    onTap: () => context.push('/history'),
+                  ),
+                  Divider(
+                      height: 1,
+                      color: SystemPalette.primary.withValues(alpha: 0.15)),
+                  _Entrada(
+                    chave: const Key('entrada_conquistas'),
+                    icone: Icons.emoji_events_rounded,
+                    iconeCor: SystemPalette.gold,
+                    titulo: 'CONQUISTAS',
+                    detalhe: 'Troféus do Sistema',
+                    onTap: () => context.push('/achievements'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: SystemSpacing.lg),
+          SystemEntrance(
+            delay: SystemDurations.staggerStep * 3,
             child: globalAsync.when(
               data: (stats) => _GlobalStatsGrid(stats: stats),
               loading: () => const Center(
@@ -54,69 +90,63 @@ class StatisticsScreen extends ConsumerWidget {
               ),
             ),
           ),
-          const SizedBox(height: SystemSpacing.lg),
-          SystemEntrance(
-            delay: SystemDurations.staggerStep * 2,
-            child: const PlayerAttributesPanel(),
-          ),
-          const SizedBox(height: SystemSpacing.lg),
-          Row(
-            children: [
-              Expanded(
-                child: SystemButton(
-                  label: 'Histórico',
-                  icon: const Icon(Icons.history_rounded,
-                      size: 16, color: SystemPalette.foreground),
-                  onPressed: () => context.push('/history'),
-                ),
-              ),
-              const SizedBox(width: SystemSpacing.sm),
-              Expanded(
-                child: SystemButton(
-                  label: 'Conquistas',
-                  icon: const Icon(Icons.emoji_events_rounded,
-                      size: 16, color: SystemPalette.gold),
-                  onPressed: () => context.push('/achievements'),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: SystemSpacing.lg),
-          SystemEntrance(
-            delay: SystemDurations.staggerStep * 3,
-            child: SystemPanel(
-              title: 'DETALHES POR EXERCÍCIO',
-              child: porExercicioAsync.when(
-                data: (lista) {
-                  if (lista.isEmpty) {
-                    return const SystemEmptyState(
-                      message: 'NENHUM EXERCÍCIO REGISTRADO AINDA',
-                    );
-                  }
-                  return Column(
-                    children: [
-                      for (var i = 0; i < lista.length; i++) ...[
-                        if (i > 0) const SizedBox(height: SystemSpacing.md),
-                        _ExerciseStatsRow(stats: lista[i]),
-                      ],
-                    ],
-                  );
-                },
-                loading: () => const Center(
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(vertical: SystemSpacing.md),
-                    child:
-                        CircularProgressIndicator(color: SystemPalette.primary),
-                  ),
-                ),
-                error: (error, stackTrace) => const SystemEmptyState(
-                  icon: Icons.error_outline,
-                  message: 'ERRO AO CARREGAR DETALHES',
-                ),
+          // Atributos (escondido por enquanto; será usado depois):
+          // const SizedBox(height: SystemSpacing.lg),
+          // SystemEntrance(
+          //   delay: SystemDurations.staggerStep * 4,
+          //   child: const PlayerAttributesPanel(),
+          // ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Uma entrada do quadro Histórico/Conquistas.
+class _Entrada extends StatelessWidget {
+  const _Entrada({
+    required this.chave,
+    required this.icone,
+    required this.titulo,
+    required this.detalhe,
+    required this.onTap,
+    this.iconeCor = SystemPalette.primary,
+  });
+
+  final Key chave;
+  final IconData icone;
+  final Color iconeCor;
+  final String titulo;
+  final String detalhe;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      key: chave,
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.all(SystemSpacing.lg),
+        child: Row(
+          children: [
+            Icon(icone, size: 22, color: iconeCor),
+            const SizedBox(width: SystemSpacing.md),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(titulo, style: SystemTextStyles.displaySmall),
+                  Text(detalhe,
+                      style: SystemTextStyles.body
+                          .copyWith(color: SystemPalette.mutedForeground)),
+                ],
               ),
             ),
-          ),
-        ],
+            const Icon(Icons.chevron_right,
+                size: 18, color: SystemPalette.mutedForeground),
+          ],
+        ),
       ),
     );
   }
@@ -178,44 +208,5 @@ class _GlobalStatsGrid extends StatelessWidget {
     final horas = d.inHours;
     final minutos = d.inMinutes.remainder(60);
     return horas > 0 ? '${horas}h${minutos}min' : '${minutos}min';
-  }
-}
-
-class _ExerciseStatsRow extends StatelessWidget {
-  const _ExerciseStatsRow({required this.stats});
-
-  final ExerciseStatistics stats;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(
-          horizontal: SystemSpacing.md, vertical: SystemSpacing.sm),
-      decoration: BoxDecoration(
-        color:
-            SystemPalette.surface2.withValues(alpha: SystemOpacities.surface2),
-        border: Border(
-          left: BorderSide(
-              color: SystemPalette.primary.withValues(alpha: 0.5), width: 2),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            stats.exerciseNome,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: SystemTextStyles.body.copyWith(fontWeight: FontWeight.w600),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            '${stats.maiorCarga.toStringAsFixed(1)} KG · ${stats.maiorRepeticao} reps · '
-            '${stats.treinosRealizados} treinos',
-            style: SystemTextStyles.bodySmall,
-          ),
-        ],
-      ),
-    );
   }
 }

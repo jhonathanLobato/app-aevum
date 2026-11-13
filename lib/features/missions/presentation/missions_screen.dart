@@ -12,8 +12,9 @@ import '../../../design_system/system_text_styles.dart';
 import '../../profile/presentation/profile_providers.dart';
 import '../../daily/presentation/daily_providers.dart';
 import '../../rank_exam/presentation/rank_exam_providers.dart';
-import '../../rank_exam/presentation/widgets/rank_exam_card.dart';
+import '../../rank_exam/presentation/widgets/rank_summary_card.dart';
 import '../../system_home/presentation/widgets/home_daily_panel.dart';
+import '../../rank_exam/domain/rank_exam.dart';
 import '../domain/mission.dart';
 import 'mission_providers.dart';
 import 'widgets/mission_card.dart';
@@ -65,7 +66,9 @@ class _MissionsList extends ConsumerWidget {
         .where((m) => m.tipo != MissionType.diaria)
         .toList();
     final penalidade = ref.watch(pendingPenaltyProvider).valueOrNull ?? 0;
-    final exame = ref.watch(rankExamProvider).valueOrNull;
+    final faseExame = ref.watch(rankStatusProvider).valueOrNull?.fase;
+    final temExame = faseExame == RankExamPhase.disponivel ||
+        faseExame == RankExamPhase.emAndamento;
 
     // Cada bloco é chaveado pelo próprio grupo (não pela posição), então se o
     // histórico aparecer depois os blocos já na tela não repetem a entrada.
@@ -107,10 +110,10 @@ class _MissionsList extends ConsumerWidget {
         ),
       if (desafios.isNotEmpty)
         'desafios': _MissionGroup('DESAFIOS', desafios, userRank),
-      if (exame != null)
+      if (temExame)
         'exame': const Padding(
           padding: EdgeInsets.only(bottom: SystemSpacing.md),
-          child: RankExamCard(),
+          child: RankSummaryCard(),
         ),
       if (concluidas.isNotEmpty)
         'historico':

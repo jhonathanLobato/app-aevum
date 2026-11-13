@@ -1225,16 +1225,29 @@ SISTEMA, TREINOS, ATIVIDADES, MISSÕES, STATUS.
   ou "Descanso programado" com "Iniciar treino", ou o cartão do treino em
   andamento); exame de rank (só se ativo); faixa da semana com contador de
   folgas. Sem atalho de Histórico/Exercícios nem "Progresso recente".
-* **TREINOS**: "Minha semana", meus treinos (inclui a biblioteca A–F), botão
+* **TREINOS**: quadro "Minha semana" (só mostra os dias marcados, ex. "Seg ·
+  Qua · Sex"; tocar abre a tela `/week` com os 7 dias e o botão "Salvar" —
+  sair sem salvar descarta), meus treinos (inclui a biblioteca A–F), botão
   Exercícios, cartão de treino em andamento. Criar/renomear treino é um
   diálogo.
 * **ATIVIDADES**: 7 modalidades — Corrida/Caminhada, Ciclismo, Muay Thai/Boxe,
   Jiu Jitsu, Basquete, Futebol e Skate (registros antigos migrados).
 * **MISSÕES**: Missão Diária no topo, penalidade pendente, semanal, desafios,
   exame de rank e concluídas recentemente.
-* **STATUS**: relatório semanal (e lista de relatórios anteriores),
-  estatísticas, atributos, atalhos para Histórico e Conquistas, detalhe por
-  exercício. A identidade fica só na tela Sistema.
+* **STATUS**, em quadros nesta ordem: **Rank** (rank, nível e estado do
+  próximo exame; abre a tela de Rank), **Relatório semanal** (e lista de
+  anteriores), um quadro único com as entradas **Histórico** e
+  **Conquistas**, e as estatísticas globais. Os atributos
+  (Força/Resistência/Constância) estão comentados na tela (código mantido
+  para uso futuro) e o "Detalhe por exercício" foi removido (o histórico
+  cobre). A identidade fica só na tela Sistema.
+* **Tela de Rank** (`/rank`): lugar único de tudo sobre rank — explica os
+  ranks F a S (nível mínimo, tempo mínimo, requisitos de cada exame), a
+  janela de 7 dias e a regra de reinício; mostra o que falta para liberar o
+  próximo exame (nível e dias) ou o progresso do exame em andamento (cada
+  requisito em número absoluto e os dias restantes) e o botão "Iniciar
+  exame". Os cards de exame na Sistema e em Missões são só um resumo que
+  leva para essa tela.
 
 ## 30.2 Missão diária
 
@@ -1266,29 +1279,53 @@ de carga por exercício continua como antes.
   fica abaixo do início do nível atual (não cai de nível) e o rank nunca cai.
   Aviso vermelho na próxima abertura, até o usuário confirmar.
 
-## 30.5 Rank e exame de rank
+## 30.5 Curva de nível, rank e exame de rank
 
-O nível continua subindo pelo XP, mas o **rank só sobe ao passar no exame**.
-O exame é liberado ao atingir o nível mínimo do próximo rank (E=10, D=20,
-C=30, B=40, A=50, S=60) e começa nesse momento. Requisitos, todos dentro do
-período:
+**Curva**: XP para sair do nível n = `480 + 10 × n` (XP **por nível**; o XP
+total para entrar num nível é a soma dos anteriores). Níveis mínimos para
+liberar o exame de cada rank: **E=10, D=25, C=45, B=70, A=100, S=140** (XP
+total: 4.770 / 14.520 / 31.020 / 57.270 / 97.020 / 164.020).
 
-| Exame | Treinos | Duração | Atividades extras |
-| ----- | ------: | ------: | ----------------- |
-| F→E | 12 | 21 dias | 3 modalidades, 1 registro cada |
-| E→D | 18 | 30 dias | 3 modalidades, 2 registros cada |
-| D→C | 26 | 45 dias | 3 modalidades, 2 registros cada |
-| C→B | 36 | 60 dias | 4 modalidades, 2 registros cada |
-| B→A | 48 | 75 dias | 4 modalidades, 3 registros cada |
-| A→S | 64 | 90 dias | 4 modalidades, 3 registros cada |
+**Liberação**: o nível sobe pelo XP, mas o **rank só sobe ao passar no
+exame**. O exame do próximo rank só é liberado quando os DOIS forem
+cumpridos: o nível mínimo do próximo rank **e** um tempo mínimo no rank
+atual — **F=2, E=3, D=5, C=7, B=9, A=10 meses** (contados da data em que
+entrou no rank; usuários antigos contam a partir da data da migração).
 
-O usuário escolhe as modalidades entre as de Atividades; só contam registros
-de 30+ min. Além disso, a missão diária precisa ser cumprida em pelo menos 75%
-dos dias do período (dias de folga ficam fora do cálculo). O exame **reinicia**
-(progresso zerado, novo período começando na hora, com aviso) quando o prazo
-acaba com algo incompleto ou assim que os 75% ficam matematicamente
-impossíveis. Ao passar: overlay "RANK UP" e conquista "Rank E" conforme o
-exame. Visível nas abas Missões e Sistema.
+**Início (manual)**: o exame não começa sozinho ao ser liberado. Na abertura
+do app aparece o aviso "[SISTEMA] Exame de reavaliação disponível". O usuário
+tem **7 dias** para iniciá-lo na tela de Rank, escolhendo as atividades
+extras; o prazo do exame conta a partir do início. Se não iniciar, no 8º dia
+o exame começa sozinho, com as modalidades extras mais registradas pelo
+usuário, e um aviso. Para iniciar (manual ou automático) é preciso ter **2+
+dias de treino programados por semana**; senão o início espera.
+
+Requisitos, todos dentro do prazo:
+
+| Exame | Prazo | Treinos programados cumpridos | Missão diária cumprida | Atividades extras |
+| ----- | ----: | ----------------------------: | ---------------------: | ----------------- |
+| F→E | 35 dias | 80% | 75% | 3 modalidades, 1 registro cada |
+| E→D | 50 dias | 80% | 75% | 3 modalidades, 2 registros cada |
+| D→C | 70 dias | 85% | 80% | 3 modalidades, 2 registros cada |
+| C→B | 90 dias | 85% | 80% | 4 modalidades, 2 registros cada |
+| B→A | 110 dias | 90% | 85% | 4 modalidades, 3 registros cada |
+| A→S | 140 dias | 95% | 90% | 4 modalidades, 3 registros cada |
+
+* **Meta de treinos** = ⌈% × treinos programados nos dias do período⌉, mostrada
+  em número absoluto. Conta 1 treino de academia concluído por dia.
+* **Folga** tira o dia do cálculo da missão diária e, se era dia de treino,
+  tira aquele treino da meta.
+* Durante o exame a programação semanal **pode ganhar dias, mas não perder**
+  (a tela "Minha semana" trava a remoção dos dias salvos).
+* Atividades extras: só contam registros de 30+ min nas modalidades escolhidas.
+* **Reinício**: quando a meta de treinos ou a de missões diárias fica
+  matematicamente impossível, ou o prazo acaba incompleto, o progresso zera e
+  abre uma **nova janela de 7 dias** para iniciar de novo (as atividades
+  extras são escolhidas outra vez; sem iniciar, começa sozinho no 8º dia).
+* Ao passar: overlay "RANK UP" e a conquista "Rank E" conforme o exame. Se o
+  app estiver fechado, o RANK UP fica **pendente** e o overlay aparece na
+  próxima abertura (até ser exibido). Passar de rank reinicia a contagem do
+  tempo mínimo no novo rank.
 
 ## 30.6 Biblioteca padrão e treinos
 
@@ -1302,3 +1339,27 @@ removida). Exercícios repetidos são o mesmo registro. Tudo editável/apagável
 Cartão em Status com treinos concluídos, atividades registradas e recordes
 quebrados da semana (seg–dom); relatórios anteriores numa lista (`/reports`).
 Calculado dos dados reais.
+
+## 30.8 XP de atividades extras
+
+Cada registro de **30+ min** em Atividades vale **+30 XP**, no máximo
+**3 por semana** (segunda a domingo; vale a data da atividade). Editar (data
+ou duração) ou excluir o registro reconcilia a semana e ajusta o XP (o 4º
+registro da semana entra no limite se um dos 3 primeiros sair). Continuam sem
+PR, missão, conquista nem contar como treino de academia.
+
+## 30.9 Calibração esperada (simulação)
+
+Com estas regras (curva 480+10n, tempo mínimo por rank, exames acima) e PRs
+mais raros ao longo do tempo (meia-vida de 12 meses, piso de 25%), supondo
+que o exame é iniciado no dia da liberação:
+
+| Perfil | Tempo até o rank S |
+| ------ | ------------------ |
+| Hardcore (6 treinos/sem, missão 100%) | ~4,2 anos |
+| Constante (4 treinos/sem, missão 90%) | ~4,2 anos |
+| Casual (3 treinos/sem), missão em 80% dos dias | ~4,7 anos |
+| Casual (3 treinos/sem), missão em 70% dos dias | não passa do B (o exame B→A pede 85% de missões) |
+
+O tempo mínimo por rank (36 meses no total) domina: Hardcore e Constante
+empatam no S, e o XP só pesa para o Casual.
