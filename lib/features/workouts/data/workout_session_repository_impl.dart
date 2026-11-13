@@ -40,7 +40,19 @@ class DriftWorkoutSessionRepository implements WorkoutSessionRepository {
   }
 
   @override
-  Stream<WorkoutSession?> watchSession(int sessionId) {
+  Stream<WorkoutSession?> watchSession(int sessionId) async* {
+    yield await _carregarSessao(sessionId);
+    yield* _db
+        .tableUpdates(TableUpdateQuery.onAllTables([
+          _db.workoutSessions,
+          _db.setEntries,
+          _db.exercises,
+          _db.finishedExercises,
+        ]))
+        .asyncMap((_) => _carregarSessao(sessionId));
+  }
+
+  Future<WorkoutSession?> _carregarSessao(int sessionId) async {
     final query = _db.select(_db.workoutSessions).join([
       leftOuterJoin(
         _db.setEntries,
@@ -54,38 +66,43 @@ class DriftWorkoutSessionRepository implements WorkoutSessionRepository {
       ..where(_db.workoutSessions.id.equals(sessionId))
       ..orderBy([OrderingTerm(expression: _db.setEntries.id)]);
 
-    return query.watch().map((rows) {
-      if (rows.isEmpty) return null;
+    final rows = await query.get();
+    if (rows.isEmpty) return null;
 
-      final sessionRow = rows.first.readTable(_db.workoutSessions);
-      final series = <SetEntryRecord>[];
-      for (final row in rows) {
-        final setEntry = row.readTableOrNull(_db.setEntries);
-        final exercise = row.readTableOrNull(_db.exercises);
-        if (setEntry != null && exercise != null) {
-          series.add(SetEntryRecord(
-            id: setEntry.id,
-            exerciseId: exercise.id,
-            exerciseNome: exercise.nome,
-            serie: setEntry.serie,
-            repeticoes: setEntry.repeticoes,
-            carga: setEntry.carga,
-            volume: setEntry.volume,
-            data: setEntry.data,
-          ));
-        }
+    final finalizados = await (_db.select(_db.finishedExercises)
+          ..where((f) => f.sessionId.equals(sessionId)))
+        .get();
+    final sessionRow = rows.first.readTable(_db.workoutSessions);
+    final series = <SetEntryRecord>[];
+    for (final row in rows) {
+      final setEntry = row.readTableOrNull(_db.setEntries);
+      final exercise = row.readTableOrNull(_db.exercises);
+      if (setEntry != null && exercise != null) {
+        series.add(SetEntryRecord(
+          id: setEntry.id,
+          exerciseId: exercise.id,
+          exerciseNome: exercise.nome,
+          serie: setEntry.serie,
+          repeticoes: setEntry.repeticoes,
+          carga: setEntry.carga,
+          volume: setEntry.volume,
+          data: setEntry.data,
+        ));
       }
+    }
 
-      return WorkoutSession(
-        id: sessionRow.id,
-        templateId: sessionRow.templateId,
-        nome: sessionRow.nome,
-        data: sessionRow.data,
-        duracaoSegundos: sessionRow.duracaoSegundos,
-        status: sessionRow.status,
-        series: series,
-      );
-    });
+    return WorkoutSession(
+      id: sessionRow.id,
+      templateId: sessionRow.templateId,
+      nome: sessionRow.nome,
+      data: sessionRow.data,
+      duracaoSegundos: sessionRow.duracaoSegundos,
+      status: sessionRow.status,
+      series: series,
+      exerciciosFinalizados: {
+        for (final f in finalizados) f.exerciseId,
+      },
+    );
   }
 
   @override
@@ -169,13 +186,6 @@ class DriftWorkoutSessionRepository implements WorkoutSessionRepository {
   @override
   Future<FinishResult?> finish(int sessionId, {required Duration duracao}) {
     return _db.transaction(() async {
-      // Sessão reaberta por [reopen] mantém a duração da 1ª finalização —
-      // isso indica que o XP/missões/conquistas dela já foram concedidos.
-      final atual = await (_db.select(_db.workoutSessions)
-            ..where((s) => s.id.equals(sessionId)))
-          .getSingleOrNull();
-      final jaConcedido = atual?.duracaoSegundos != null;
-
       // Só atualiza (e só concede XP) se a sessão ainda estava em andamento,
       // para uma chamada repetida não conceder XP de novo.
       final linhasAfetadas = await (_db.update(_db.workoutSessions)
@@ -189,7 +199,7 @@ class DriftWorkoutSessionRepository implements WorkoutSessionRepository {
         ),
       );
 
-      if (linhasAfetadas == 0 || jaConcedido) return null;
+      if (linhasAfetadas == 0) return null;
 
       final missoesConcluidas =
           await _missionRepository.registrarTreinoConcluido();
@@ -211,15 +221,20 @@ class DriftWorkoutSessionRepository implements WorkoutSessionRepository {
   }
 
   @override
-  Future<void> reopen(int sessionId) {
-    return (_db.update(_db.workoutSessions)
-          ..where((s) =>
-              s.id.equals(sessionId) &
-              s.status.equalsValue(WorkoutSessionStatus.concluido)))
-        .write(
-      const WorkoutSessionsCompanion(
-          status: Value(WorkoutSessionStatus.emAndamento)),
-    );
+  Future<void> finishExercise(int sessionId, int exerciseId) {
+    return _db.into(_db.finishedExercises).insert(
+          FinishedExercisesCompanion.insert(
+              sessionId: sessionId, exerciseId: exerciseId),
+          mode: InsertMode.insertOrIgnore,
+        );
+  }
+
+  @override
+  Future<void> resumeExercise(int sessionId, int exerciseId) {
+    return (_db.delete(_db.finishedExercises)
+          ..where((f) =>
+              f.sessionId.equals(sessionId) & f.exerciseId.equals(exerciseId)))
+        .go();
   }
 
   JoinedSelectStatement<HasResultSet, dynamic> _consultaAtiva(

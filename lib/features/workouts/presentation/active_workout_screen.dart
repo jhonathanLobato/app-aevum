@@ -47,12 +47,8 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
   Timer? _ticker;
   Duration _elapsed = Duration.zero;
 
-  /// `true` quando ESTA tela acabou de finalizar a sessão — só nesse caso
-  /// oferecemos "Retornar treino" (o histórico continua somente leitura).
-  bool _finalizouAqui = false;
-
-  /// Depois de "Retornar treino", a duração continua da que já estava
-  /// gravada em vez de contar o tempo em que o treino ficou finalizado.
+  /// Só usado para sessões esquecidas há muito tempo (duração estimada pela
+  /// última série): a contagem recomeça a partir da duração estimada.
   DateTime? _retomadoEm;
   Duration _duracaoAoRetomar = Duration.zero;
   final _inputs = <int, _SetInputControllers>{};
@@ -100,10 +96,7 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
     _duracaoInicializada = true;
     final agora = DateTime.now();
 
-    if (session.duracaoSegundos != null) {
-      _duracaoAoRetomar = Duration(seconds: session.duracaoSegundos!);
-      _retomadoEm = agora;
-    } else if (agora.difference(session.data) > _limiteSessaoAbandonada) {
+    if (agora.difference(session.data) > _limiteSessaoAbandonada) {
       DateTime? ultima;
       for (final serie in session.series) {
         if (ultima == null || serie.data.isAfter(ultima)) ultima = serie.data;
@@ -125,18 +118,6 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
     final retomadoEm = _retomadoEm;
     if (retomadoEm == null) return DateTime.now().difference(inicio);
     return _duracaoAoRetomar + DateTime.now().difference(retomadoEm);
-  }
-
-  Future<void> _retornarTreino(WorkoutSession session) async {
-    await ref.read(workoutSessionRepositoryProvider).reopen(session.id);
-    if (!mounted) return;
-    _duracaoInicializada = true;
-    setState(() {
-      _finalizouAqui = false;
-      _duracaoAoRetomar = Duration(seconds: session.duracaoSegundos ?? 0);
-      _retomadoEm = DateTime.now();
-      _elapsed = _duracaoAoRetomar;
-    });
   }
 
   @override
@@ -224,7 +205,6 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
     _ticker?.cancel();
     _ticker = null;
     ref.read(workoutDraftsProvider).limparSessao(session.id);
-    if (mounted) setState(() => _finalizouAqui = true);
 
     if (resultado != null &&
         resultado.missoesConcluidas.isNotEmpty &&
@@ -327,22 +307,7 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                     ),
                   ),
                 )
-              : _finalizouAqui
-                  ? SafeArea(
-                      top: false,
-                      child: Padding(
-                        padding: const EdgeInsets.all(SystemSpacing.lg),
-                        child: SystemButton(
-                          label: 'Retornar treino',
-                          variant: SystemButtonVariant.action,
-                          size: SystemButtonSize.lg,
-                          icon: const Icon(Icons.undo,
-                              size: 16, color: SystemPalette.foreground),
-                          onPressed: () => _retornarTreino(session),
-                        ),
-                      ),
-                    )
-                  : null,
+              : null,
           body: exercicios.isEmpty
               ? const SystemEmptyState(
                   message: 'ESTE TREINO NÃO TEM EXERCÍCIOS CADASTRADOS')
@@ -407,7 +372,14 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
             enabled: true,
             onRegistrar: () =>
                 _registrarSerie(session.id, exercicio.id, exercicio.nome),
-            onFinalizarExercicio: () => _irPara(index + 1, total),
+            exercicioFinalizado:
+                session.exerciciosFinalizados.contains(exercicio.id),
+            onFinalizarExercicio: () => ref
+                .read(workoutSessionRepositoryProvider)
+                .finishExercise(session.id, exercicio.id),
+            onRetornarExercicio: () => ref
+                .read(workoutSessionRepositoryProvider)
+                .resumeExercise(session.id, exercicio.id),
           )
         else
           const _TreinoFinalizadoBanner(),

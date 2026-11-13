@@ -22,6 +22,8 @@ class WorkoutNewSetPanel extends StatefulWidget {
     required this.enabled,
     required this.onRegistrar,
     required this.onFinalizarExercicio,
+    required this.onRetornarExercicio,
+    this.exercicioFinalizado = false,
   });
 
   final TextEditingController cargaController;
@@ -29,6 +31,11 @@ class WorkoutNewSetPanel extends StatefulWidget {
   final bool enabled;
   final VoidCallback onRegistrar;
   final VoidCallback onFinalizarExercicio;
+
+  /// Exercício marcado como finalizado: os campos somem e só resta o botão
+  /// "Retornar ao exercício".
+  final bool exercicioFinalizado;
+  final VoidCallback onRetornarExercicio;
 
   @override
   State<WorkoutNewSetPanel> createState() => _WorkoutNewSetPanelState();
@@ -78,6 +85,20 @@ class _WorkoutNewSetPanelState extends State<WorkoutNewSetPanel> {
 
   @override
   Widget build(BuildContext context) {
+    if (widget.exercicioFinalizado) {
+      return SystemPanel(
+        title: 'NOVA SÉRIE',
+        child: SystemButton(
+          label: 'Retornar ao exercício',
+          variant: SystemButtonVariant.action,
+          size: SystemButtonSize.lg,
+          icon:
+              const Icon(Icons.undo, size: 16, color: SystemPalette.foreground),
+          onPressed: widget.enabled ? widget.onRetornarExercicio : null,
+        ),
+      );
+    }
+
     final cargaTexto = widget.cargaController.text;
     final repsTexto = widget.repsController.text;
 

@@ -53,6 +53,7 @@ class WorkoutSession {
     required this.duracaoSegundos,
     required this.status,
     required this.series,
+    this.exerciciosFinalizados = const {},
   });
 
   final int id;
@@ -62,6 +63,9 @@ class WorkoutSession {
   final int? duracaoSegundos;
   final WorkoutSessionStatus status;
   final List<SetEntryRecord> series;
+
+  /// Ids dos exercícios marcados como finalizados nesta sessão.
+  final Set<int> exerciciosFinalizados;
 
   List<SetEntryRecord> seriesDoExercicio(int exerciseId) {
     return series.where((s) => s.exerciseId == exerciseId).toList();

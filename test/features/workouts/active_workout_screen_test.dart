@@ -353,7 +353,7 @@ void main() {
 
   group('finalizar exercício e finalizar treino', () {
     testWidgets(
-        'finalizar exercício só avança o carrossel, sem criar dado novo',
+        'finalizar exercício esconde a nova série, persiste no banco e retornar traz de volta',
         (tester) async {
       final db = _memoryDb();
       final templateRepo = DriftWorkoutTemplateRepository(db);
@@ -371,12 +371,53 @@ void main() {
       await tester.tap(find.text('FINALIZAR EXERCÍCIO'));
       await tester.pumpAndSettle();
 
-      expect(find.text('02 / 02'), findsOneWidget);
-      // Nenhum diálogo de PR/missão/conquista deveria ter aparecido —
-      // "finalizar exercício" não registra nada no banco.
+      // Campos e botões somem; só resta "Retornar ao exercício".
+      expect(find.text('RETORNAR AO EXERCÍCIO'), findsOneWidget);
+      expect(find.byKey(const Key('workout_carga_field')), findsNothing);
+      expect(find.byKey(const Key('workout_reps_field')), findsNothing);
+      expect(find.text('REGISTRAR SÉRIE'), findsNothing);
+      expect(find.text('FINALIZAR EXERCÍCIO'), findsNothing);
+      // Continua no mesmo exercício e não cria dado de série/diálogo.
+      expect(find.text('01 / 02'), findsOneWidget);
       expect(find.byType(AlertDialog), findsNothing);
-      final linhas = await db.select(db.setEntries).get();
-      expect(linhas, isEmpty);
+      expect(await db.select(db.setEntries).get(), isEmpty);
+      final salvos = await db.select(db.finishedExercises).get();
+      expect(salvos.map((f) => f.exerciseId), [ex1]);
+
+      await tester.ensureVisible(find.text('RETORNAR AO EXERCÍCIO'));
+      await tester.tap(find.text('RETORNAR AO EXERCÍCIO'));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('workout_carga_field')), findsOneWidget);
+      expect(find.text('REGISTRAR SÉRIE'), findsOneWidget);
+      expect(await db.select(db.finishedExercises).get(), isEmpty);
+
+      await _finish(tester, db);
+    });
+
+    testWidgets('exercício finalizado continua finalizado ao reabrir a sessão',
+        (tester) async {
+      final db = _memoryDb();
+      final templateRepo = DriftWorkoutTemplateRepository(db);
+      final treinoId = await templateRepo.create('Treino A');
+      final ex1 = await _criarExercicio(db, 'Supino reto');
+      await templateRepo.addExercise(treinoId, ex1);
+
+      await _pump(tester, db, treinoId);
+      await tester.tap(find.text('INICIAR TREINO'));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('FINALIZAR EXERCÍCIO'));
+      await tester.tap(find.text('FINALIZAR EXERCÍCIO'));
+      await tester.pumpAndSettle();
+
+      // Simula "fechar e reabrir o app": volta ao detalhe e entra de novo.
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('INICIAR TREINO'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('RETORNAR AO EXERCÍCIO'), findsOneWidget);
+      expect(find.byKey(const Key('workout_carga_field')), findsNothing);
 
       await _finish(tester, db);
     });
@@ -455,63 +496,14 @@ void main() {
 
       // Voltou para a tela de detalhe do treino (não mais a sessão ativa).
       // Depois de finalizar a tela continua aberta, em modo "finalizado":
-      // sem os campos de nova série e com o botão de retornar ao treino.
+      // sem os campos de nova série e sem opção de reabrir o treino.
       expect(find.text('TREINO FINALIZADO'), findsOneWidget);
-      expect(find.text('RETORNAR TREINO'), findsOneWidget);
+      expect(find.text('RETORNAR TREINO'), findsNothing);
       expect(find.text('REGISTRAR SÉRIE'), findsNothing);
       expect(find.text('FINALIZAR TREINO'), findsNothing);
 
       final sessao = await (db.select(db.workoutSessions)).getSingle();
       expect(sessao.status, WorkoutSessionStatus.concluido);
-
-      await _finish(tester, db);
-    });
-
-    testWidgets(
-        'retornar treino traz de volta os campos de série e finalizar de novo não repete o XP',
-        (tester) async {
-      final db = _memoryDb();
-      final exId = await _criarExercicio(db, 'Supino reto');
-      final templateRepo = DriftWorkoutTemplateRepository(db);
-      final treinoId = await templateRepo.create('Treino A');
-      await templateRepo.addExercise(treinoId, exId);
-
-      await _pump(tester, db, treinoId);
-      await tester.tap(find.text('INICIAR TREINO'));
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.text('FINALIZAR TREINO'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('FINALIZAR'));
-      await tester.pumpAndSettle();
-      await _fecharDialogosSeHouver(tester);
-
-      expect(find.text('REGISTRAR SÉRIE'), findsNothing);
-      final xpDepoisDeFinalizar = (await db.select(db.users).getSingle()).xp;
-      expect(xpDepoisDeFinalizar, greaterThan(0));
-
-      await tester.tap(find.text('RETORNAR TREINO'));
-      await tester.pumpAndSettle();
-
-      // Tudo que tinha sumido volta, junto com o botão de finalizar.
-      expect(find.text('REGISTRAR SÉRIE'), findsOneWidget);
-      expect(find.text('FINALIZAR TREINO'), findsOneWidget);
-      expect(find.text('RETORNAR TREINO'), findsNothing);
-      expect(find.text('TREINO FINALIZADO'), findsNothing);
-      final reaberta = await (db.select(db.workoutSessions)).getSingle();
-      expect(reaberta.status, WorkoutSessionStatus.emAndamento);
-
-      await tester.tap(find.text('FINALIZAR TREINO'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('FINALIZAR'));
-      await tester.pumpAndSettle();
-      await _fecharDialogosSeHouver(tester);
-
-      expect(find.text('RETORNAR TREINO'), findsOneWidget);
-      final sessao = await (db.select(db.workoutSessions)).getSingle();
-      expect(sessao.status, WorkoutSessionStatus.concluido);
-      // Finalizar a mesma sessão uma segunda vez não concede XP de novo.
-      expect((await db.select(db.users).getSingle()).xp, xpDepoisDeFinalizar);
 
       await _finish(tester, db);
     });
