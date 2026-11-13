@@ -66,7 +66,7 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
   static const _limiteSessaoAbandonada = Duration(hours: 12);
 
   /// Cargas/repetições digitadas e ainda não registradas sobrevivem a sair da
-  /// tela (ficam em [workoutDraftsProvider] enquanto o app está aberto).
+  /// tela (persistidos via [workoutDraftsProvider]).
   _SetInputControllers _controllersFor(int exerciseId) {
     return _inputs.putIfAbsent(exerciseId, () {
       final rascunhos = ref.read(workoutDraftsProvider);
@@ -231,6 +231,19 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
   @override
   Widget build(BuildContext context) {
     final sessionAsync = ref.watch(workoutSessionProvider(widget.sessionId));
+    // Os rascunhos de carga/repetições precisam estar carregados do banco
+    // antes de criar os campos (a leitura deles é síncrona).
+    final rascunhosProntos =
+        ref.watch(workoutDraftsReadyProvider(widget.sessionId));
+    if (rascunhosProntos.isLoading) {
+      return const SystemScaffold(
+        title: 'TREINO',
+        header: _Header(title: 'TREINO'),
+        body: Center(
+          child: CircularProgressIndicator(color: SystemPalette.primary),
+        ),
+      );
+    }
 
     return sessionAsync.when(
       data: (session) {

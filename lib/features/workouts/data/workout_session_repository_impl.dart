@@ -209,6 +209,10 @@ class DriftWorkoutSessionRepository implements WorkoutSessionRepository {
 
       if (linhasAfetadas == 0) return null;
 
+      await (_db.delete(_db.setDrafts)
+            ..where((d) => d.sessionId.equals(sessionId)))
+          .go();
+
       final missoesConcluidas =
           await _missionRepository.registrarTreinoConcluido();
       final xpMissoes =
@@ -311,6 +315,9 @@ class DriftWorkoutSessionRepository implements WorkoutSessionRepository {
 
       await (_db.delete(_db.setEntries)
             ..where((e) => e.sessionId.equals(sessionId)))
+          .go();
+      await (_db.delete(_db.setDrafts)
+            ..where((d) => d.sessionId.equals(sessionId)))
           .go();
       await (_db.update(_db.workoutSessions)
             ..where((s) => s.id.equals(sessionId)))

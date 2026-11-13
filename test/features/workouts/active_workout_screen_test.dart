@@ -535,6 +535,101 @@ void main() {
     });
   });
 
+  group('rascunho de série persistido', () {
+    testWidgets('carga e repetições digitadas voltam depois de reabrir o app',
+        (tester) async {
+      final db = _memoryDb();
+      final exId = await _criarExercicio(db, 'Supino reto');
+      final templateRepo = DriftWorkoutTemplateRepository(db);
+      final treinoId = await templateRepo.create('Treino A');
+      await templateRepo.addExercise(treinoId, exId);
+
+      await _pump(tester, db, treinoId);
+      await tester.tap(find.text('INICIAR TREINO'));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.descendant(
+            of: find.byKey(const Key('workout_carga_field')),
+            matching: find.byType(TextField)),
+        '42,5',
+      );
+      await tester.enterText(
+        find.descendant(
+            of: find.byKey(const Key('workout_reps_field')),
+            matching: find.byType(TextField)),
+        '8',
+      );
+      await tester.pumpAndSettle();
+
+      final salvo = await db.select(db.setDrafts).getSingle();
+      expect(salvo.carga, '42,5');
+      expect(salvo.reps, '8');
+
+      // "Fecha o app": derruba toda a árvore e os providers (cache em
+      // memória some); o banco permanece.
+      await tester.pumpWidget(const SizedBox());
+      await tester.pump(const Duration(milliseconds: 50));
+
+      await _pump(tester, db, treinoId);
+      await tester.tap(find.text('INICIAR TREINO'));
+      await tester.pumpAndSettle();
+
+      expect(
+        tester
+            .widget<TextField>(find.descendant(
+                of: find.byKey(const Key('workout_carga_field')),
+                matching: find.byType(TextField)))
+            .controller!
+            .text,
+        '42,5',
+      );
+      expect(
+        tester
+            .widget<TextField>(find.descendant(
+                of: find.byKey(const Key('workout_reps_field')),
+                matching: find.byType(TextField)))
+            .controller!
+            .text,
+        '8',
+      );
+
+      await _finish(tester, db);
+    });
+
+    testWidgets('registrar a série ou finalizar o treino apaga o rascunho',
+        (tester) async {
+      final db = _memoryDb();
+      final exId = await _criarExercicio(db, 'Supino reto');
+      final templateRepo = DriftWorkoutTemplateRepository(db);
+      final treinoId = await templateRepo.create('Treino A');
+      await templateRepo.addExercise(treinoId, exId);
+
+      await _pump(tester, db, treinoId);
+      await tester.tap(find.text('INICIAR TREINO'));
+      await tester.pumpAndSettle();
+      await _registrarSerie(tester, carga: '30', reps: '10');
+      expect(await db.select(db.setDrafts).get(), isEmpty);
+
+      await tester.enterText(
+        find.descendant(
+            of: find.byKey(const Key('workout_carga_field')),
+            matching: find.byType(TextField)),
+        '35',
+      );
+      await tester.pumpAndSettle();
+      expect(await db.select(db.setDrafts).get(), hasLength(1));
+
+      await tester.tap(find.text('FINALIZAR TREINO'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('FINALIZAR'));
+      await tester.pumpAndSettle();
+      await _fecharDialogosSeHouver(tester);
+      expect(await db.select(db.setDrafts).get(), isEmpty);
+
+      await _finish(tester, db);
+    });
+  });
+
   group('Android back e navigation bar', () {
     testWidgets('botão voltar do Android volta pro detalhe do treino',
         (tester) async {

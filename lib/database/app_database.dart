@@ -18,6 +18,7 @@ import '../features/profile/domain/player_class.dart';
 import '../features/progression/data/tables/personal_record_table.dart';
 import '../features/progression/domain/personal_record.dart';
 import '../features/workouts/data/tables/finished_exercise_table.dart';
+import '../features/workouts/data/tables/set_draft_table.dart';
 import '../features/workouts/data/tables/set_entry_table.dart';
 import '../features/workouts/data/tables/workout_session_table.dart';
 import '../features/workouts/data/tables/workout_template_exercise_table.dart';
@@ -38,6 +39,7 @@ part 'app_database.g.dart';
   Achievements,
   SportActivities,
   FinishedExercises,
+  SetDrafts,
 ])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
@@ -45,7 +47,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -56,6 +58,8 @@ class AppDatabase extends _$AppDatabase {
           if (from < 2) await m.createTable(sportActivities);
           // v3: exercícios finalizados dentro de uma sessão de treino.
           if (from < 3) await m.createTable(finishedExercises);
+          // v4: rascunhos de carga/repetições do treino em andamento.
+          if (from < 4) await m.createTable(setDrafts);
         },
         beforeOpen: (details) async {
           await customStatement('PRAGMA foreign_keys = ON');
