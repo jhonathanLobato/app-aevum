@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../design_system/rank_badge.dart';
 import '../../../design_system/system_back_button.dart';
 import '../../../design_system/system_button.dart';
 import '../../../design_system/system_colors.dart';
@@ -17,6 +18,7 @@ import '../../body/domain/body.dart';
 import '../../body/presentation/body_summary.dart';
 import '../domain/app_theme.dart';
 import '../domain/avatar_catalog.dart';
+import '../domain/level_curve.dart';
 import '../domain/player_class.dart';
 import '../domain/titles.dart';
 import '../domain/units.dart';
@@ -163,6 +165,17 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              _Cabecalho(
+                nome: _nomeController,
+                avatar: _avatar,
+                classe: _classe,
+                titulo: _titulo,
+                rank: rank,
+                nivel: const LevelCurve().calcularNivel(user?.xp ?? 0).nivel,
+                despertar: despertar,
+                dias: dias,
+              ),
+              const SizedBox(height: SystemSpacing.lg),
               SystemPanel(
                 title: 'IDENTIDADE',
                 child: Column(
@@ -175,41 +188,52 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       textInputAction: TextInputAction.done,
                     ),
                     const SizedBox(height: SystemSpacing.md),
-                    const _Rotulo('AVATAR'),
-                    Wrap(
-                      spacing: SystemSpacing.sm,
-                      runSpacing: SystemSpacing.sm,
-                      children: [
-                        for (final chave in kAvatarCatalog)
-                          OptionTile(
-                            selected: _avatar == chave,
-                            semanticLabel: 'Avatar $chave',
-                            onTap: () => setState(() => _avatar = chave),
-                            child: Icon(
-                              iconeDoAvatar(chave),
-                              size: 22,
-                              color: _avatar == chave
-                                  ? SystemPalette.primary
-                                  : SystemPalette.mutedForeground,
+                    _Recolhivel(
+                      id: 'avatar',
+                      titulo: 'AVATAR',
+                      resumo: Icon(iconeDoAvatar(_avatar),
+                          size: 20, color: SystemPalette.primary),
+                      child: Wrap(
+                        spacing: SystemSpacing.sm,
+                        runSpacing: SystemSpacing.sm,
+                        children: [
+                          for (final chave in kAvatarCatalog)
+                            OptionTile(
+                              selected: _avatar == chave,
+                              semanticLabel: 'Avatar $chave',
+                              onTap: () => setState(() => _avatar = chave),
+                              child: Icon(
+                                iconeDoAvatar(chave),
+                                size: 22,
+                                color: _avatar == chave
+                                    ? SystemPalette.primary
+                                    : SystemPalette.mutedForeground,
+                              ),
                             ),
-                          ),
-                      ],
+                        ],
+                      ),
                     ),
-                    const SizedBox(height: SystemSpacing.md),
-                    const _Rotulo('CLASSE'),
-                    Wrap(
-                      spacing: SystemSpacing.sm,
-                      runSpacing: SystemSpacing.sm,
-                      children: [
-                        for (final classe in PlayerClass.values)
-                          OptionTile(
-                            selected: _classe == classe,
-                            semanticLabel: 'Classe ${nomeDaClasse(classe)}',
-                            onTap: () => setState(() => _classe = classe),
-                            child: OptionLabel(nomeDaClasse(classe),
-                                selected: _classe == classe),
-                          ),
-                      ],
+                    const SizedBox(height: SystemSpacing.sm),
+                    _Recolhivel(
+                      id: 'classe',
+                      titulo: 'CLASSE',
+                      resumo: Text(nomeDaClasse(_classe).toUpperCase(),
+                          style: SystemTextStyles.label
+                              .copyWith(color: SystemPalette.violet)),
+                      child: Wrap(
+                        spacing: SystemSpacing.sm,
+                        runSpacing: SystemSpacing.sm,
+                        children: [
+                          for (final classe in PlayerClass.values)
+                            OptionTile(
+                              selected: _classe == classe,
+                              semanticLabel: 'Classe ${nomeDaClasse(classe)}',
+                              onTap: () => setState(() => _classe = classe),
+                              child: OptionLabel(nomeDaClasse(classe),
+                                  selected: _classe == classe),
+                            ),
+                        ],
+                      ),
                     ),
                     const SizedBox(height: SystemSpacing.md),
                     const _Rotulo('TÍTULO'),
@@ -229,15 +253,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         ],
                       ),
                     ),
-                    const SizedBox(height: SystemSpacing.md),
-                    const _Rotulo('DATA DO DESPERTAR'),
-                    Text(
-                      despertar == null
-                          ? '—'
-                          : '${formatarDataBr(despertar)} · $dias ${dias == 1 ? 'dia' : 'dias'} de jornada',
-                      key: const Key('profile_despertar'),
-                      style: SystemTextStyles.body,
-                    ),
                   ],
                 ),
               ),
@@ -247,41 +262,98 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    SystemTextField(
-                      key: const Key('profile_altura_field'),
-                      label: 'Altura',
-                      controller: _alturaController,
-                      suffix: _units.comprimentoSufixo,
-                      keyboardType:
-                          const TextInputType.numberWithOptions(decimal: true),
-                      textInputAction: TextInputAction.done,
+                    // Resumo: cartão tocável que abre a tela Corpo.
+                    InkWell(
+                      key: const Key('body_summary'),
+                      onTap: () => context.push('/body'),
+                      child: Container(
+                        padding: const EdgeInsets.all(SystemSpacing.md),
+                        decoration: BoxDecoration(
+                          color: SystemPalette.surface2
+                              .withValues(alpha: SystemOpacities.surface2),
+                          border: Border.all(
+                              color:
+                                  SystemPalette.primary.withValues(alpha: 0.4)),
+                        ),
+                        child: const Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Row(
+                              children: [
+                                Expanded(
+                                    child: Text('EVOLUÇÃO CORPORAL',
+                                        style: SystemTextStyles.label)),
+                                Text('VER TUDO',
+                                    style: SystemTextStyles.labelTiny),
+                                Icon(Icons.chevron_right,
+                                    size: 18, color: SystemPalette.primary),
+                              ],
+                            ),
+                            SizedBox(height: SystemSpacing.sm),
+                            BodySummary(),
+                          ],
+                        ),
+                      ),
                     ),
                     const SizedBox(height: SystemSpacing.md),
-                    const _Rotulo('DATA DE NASCIMENTO'),
+                    SystemButton(
+                      key: const Key('body_novo_registro'),
+                      label: 'Novo registro',
+                      variant: SystemButtonVariant.action,
+                      icon: const Icon(Icons.add,
+                          size: 16, color: SystemPalette.foreground),
+                      onPressed: () => context.push('/body/new'),
+                    ),
+                    const SizedBox(height: SystemSpacing.lg),
+                    const _Rotulo('CADASTRO'),
                     Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        OptionTile(
-                          key: const Key('profile_nascimento_button'),
-                          selected: _nascimento != null,
-                          semanticLabel: 'Data de nascimento',
-                          onTap: _escolherNascimento,
-                          child: OptionLabel(
-                              _nascimento == null
-                                  ? 'Informar'
-                                  : formatarDataBr(_nascimento!),
-                              selected: _nascimento != null),
+                        Expanded(
+                          child: SystemTextField(
+                            key: const Key('profile_altura_field'),
+                            label: 'Altura',
+                            controller: _alturaController,
+                            suffix: _units.comprimentoSufixo,
+                            keyboardType: const TextInputType.numberWithOptions(
+                                decimal: true),
+                            textInputAction: TextInputAction.done,
+                          ),
                         ),
                         const SizedBox(width: SystemSpacing.md),
-                        if (_nascimento != null) ...[
-                          Text('${idadeEm(_nascimento!, hoje)} anos',
-                              key: const Key('profile_idade'),
-                              style: SystemTextStyles.body),
-                          IconButton(
-                            tooltip: 'Limpar data de nascimento',
-                            icon: const Icon(Icons.close, size: 18),
-                            onPressed: () => setState(() => _nascimento = null),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const _Rotulo('NASCIMENTO'),
+                              OptionTile(
+                                key: const Key('profile_nascimento_button'),
+                                selected: _nascimento != null,
+                                semanticLabel: 'Data de nascimento',
+                                onTap: _escolherNascimento,
+                                child: OptionLabel(
+                                    _nascimento == null
+                                        ? 'Informar'
+                                        : formatarDataBr(_nascimento!),
+                                    selected: _nascimento != null),
+                              ),
+                              if (_nascimento != null)
+                                Row(
+                                  children: [
+                                    Text('${idadeEm(_nascimento!, hoje)} anos',
+                                        key: const Key('profile_idade'),
+                                        style: SystemTextStyles.body),
+                                    IconButton(
+                                      tooltip: 'Limpar data de nascimento',
+                                      icon: const Icon(Icons.close, size: 18),
+                                      onPressed: () =>
+                                          setState(() => _nascimento = null),
+                                    ),
+                                  ],
+                                ),
+                            ],
                           ),
-                        ],
+                        ),
                       ],
                     ),
                     const SizedBox(height: SystemSpacing.md),
@@ -303,90 +375,79 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           ),
                       ],
                     ),
-                    const SizedBox(height: SystemSpacing.lg),
-                    GestureDetector(
-                      key: const Key('body_summary'),
-                      behavior: HitTestBehavior.opaque,
-                      onTap: () => context.push('/body'),
-                      child: const Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Row(
-                            children: [
-                              Expanded(child: _Rotulo('REGISTROS CORPORAIS')),
-                              Icon(Icons.chevron_right,
-                                  size: 18,
-                                  color: SystemPalette.mutedForeground),
-                            ],
-                          ),
-                          BodySummary(),
-                        ],
-                      ),
-                    ),
                   ],
                 ),
               ),
               const SizedBox(height: SystemSpacing.lg),
               SystemPanel(
                 title: 'PREFERÊNCIAS',
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    const _Rotulo('TEMA'),
-                    Wrap(
-                      spacing: SystemSpacing.sm,
-                      children: [
-                        for (final (tema, nome) in const [
-                          (AppTheme.escuro, 'Escuro'),
-                          (AppTheme.claro, 'Claro'),
-                        ])
-                          OptionTile(
-                            key: Key('profile_tema_${tema.name}'),
-                            selected: _tema == tema,
-                            semanticLabel: 'Tema $nome',
-                            onTap: () => setState(() => _tema = tema),
-                            child: OptionLabel(nome, selected: _tema == tema),
-                          ),
-                      ],
-                    ),
-                    const SizedBox(height: SystemSpacing.md),
-                    const _Rotulo('PESO'),
-                    Wrap(
-                      spacing: SystemSpacing.sm,
-                      children: [
-                        for (final u in WeightUnit.values)
-                          OptionTile(
-                            key: Key('profile_peso_${u.name}'),
-                            selected: _units.peso == u,
-                            semanticLabel: 'Peso em ${u.name}',
-                            onTap: () => setState(() => _units = Units(
-                                peso: u, comprimento: _units.comprimento)),
-                            child:
-                                OptionLabel(u.name, selected: _units.peso == u),
-                          ),
-                      ],
-                    ),
-                    const SizedBox(height: SystemSpacing.md),
-                    const _Rotulo('COMPRIMENTO'),
-                    Wrap(
-                      spacing: SystemSpacing.sm,
-                      children: [
-                        for (final u in LengthUnit.values)
-                          OptionTile(
-                            key: Key('profile_comprimento_${u.name}'),
-                            selected: _units.comprimento == u,
-                            semanticLabel: 'Comprimento em ${u.name}',
-                            onTap: () => _mudarComprimento(u),
-                            child: OptionLabel(u.name,
-                                selected: _units.comprimento == u),
-                          ),
-                      ],
-                    ),
-                    const SizedBox(height: SystemSpacing.sm),
-                    Text('Distância continua em km.',
-                        style: SystemTextStyles.body
-                            .copyWith(color: SystemPalette.mutedForeground)),
-                  ],
+                child: _Recolhivel(
+                  id: 'preferencias',
+                  titulo: 'TEMA E UNIDADES',
+                  resumo: Text(
+                    '${_tema == AppTheme.escuro ? 'Escuro' : 'Claro'} · ${_units.peso.name} · ${_units.comprimento.name}',
+                    style: SystemTextStyles.body
+                        .copyWith(color: SystemPalette.mutedForeground),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const _Rotulo('TEMA'),
+                      Wrap(
+                        spacing: SystemSpacing.sm,
+                        children: [
+                          for (final (tema, nome) in const [
+                            (AppTheme.escuro, 'Escuro'),
+                            (AppTheme.claro, 'Claro'),
+                          ])
+                            OptionTile(
+                              key: Key('profile_tema_${tema.name}'),
+                              selected: _tema == tema,
+                              semanticLabel: 'Tema $nome',
+                              onTap: () => setState(() => _tema = tema),
+                              child: OptionLabel(nome, selected: _tema == tema),
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: SystemSpacing.md),
+                      const _Rotulo('PESO'),
+                      Wrap(
+                        spacing: SystemSpacing.sm,
+                        children: [
+                          for (final u in WeightUnit.values)
+                            OptionTile(
+                              key: Key('profile_peso_${u.name}'),
+                              selected: _units.peso == u,
+                              semanticLabel: 'Peso em ${u.name}',
+                              onTap: () => setState(() => _units = Units(
+                                  peso: u, comprimento: _units.comprimento)),
+                              child: OptionLabel(u.name,
+                                  selected: _units.peso == u),
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: SystemSpacing.md),
+                      const _Rotulo('COMPRIMENTO'),
+                      Wrap(
+                        spacing: SystemSpacing.sm,
+                        children: [
+                          for (final u in LengthUnit.values)
+                            OptionTile(
+                              key: Key('profile_comprimento_${u.name}'),
+                              selected: _units.comprimento == u,
+                              semanticLabel: 'Comprimento em ${u.name}',
+                              onTap: () => _mudarComprimento(u),
+                              child: OptionLabel(u.name,
+                                  selected: _units.comprimento == u),
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: SystemSpacing.sm),
+                      Text('Distância continua em km.',
+                          style: SystemTextStyles.body
+                              .copyWith(color: SystemPalette.mutedForeground)),
+                    ],
+                  ),
                 ),
               ),
               const SizedBox(height: SystemSpacing.lg),
@@ -415,6 +476,159 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           child: CircularProgressIndicator(color: SystemPalette.primary),
         ),
       ),
+    );
+  }
+}
+
+/// Resumo de leitura no topo da ficha: quem você é agora (reflete o que está
+/// sendo editado, mesmo antes de salvar).
+class _Cabecalho extends StatelessWidget {
+  const _Cabecalho({
+    required this.nome,
+    required this.avatar,
+    required this.classe,
+    required this.titulo,
+    required this.rank,
+    required this.nivel,
+    required this.despertar,
+    required this.dias,
+  });
+
+  final TextEditingController nome;
+  final String? avatar;
+  final PlayerClass classe;
+  final String titulo;
+  final String rank;
+  final int nivel;
+  final DateTime? despertar;
+  final int dias;
+
+  @override
+  Widget build(BuildContext context) {
+    return SystemPanel(
+      glow: true,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 64,
+                height: 64,
+                margin: const EdgeInsets.only(right: SystemSpacing.md),
+                decoration: BoxDecoration(
+                  color: SystemPalette.primary.withValues(alpha: 0.08),
+                  border: Border.all(color: SystemPalette.primary),
+                ),
+                child: Icon(iconeDoAvatar(avatar),
+                    color: SystemPalette.primary, size: 34),
+              ),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    ValueListenableBuilder<TextEditingValue>(
+                      valueListenable: nome,
+                      builder: (_, v, __) => Text(
+                        (v.text.trim().isEmpty ? 'Jogador' : v.text.trim())
+                            .toUpperCase(),
+                        key: const Key('profile_cabecalho_nome'),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: SystemTextStyles.displaySmall,
+                      ),
+                    ),
+                    const SizedBox(height: SystemSpacing.xs),
+                    Text('⚔ ${nomeDaClasse(classe).toUpperCase()}',
+                        style: SystemTextStyles.label
+                            .copyWith(color: SystemPalette.violet)),
+                    const SizedBox(height: SystemSpacing.xs),
+                    Text(titulo.toUpperCase(),
+                        key: const Key('profile_cabecalho_titulo'),
+                        style: SystemTextStyles.label
+                            .copyWith(color: SystemPalette.gold)),
+                  ],
+                ),
+              ),
+              Column(
+                children: [
+                  RankBadge(rank: rank, size: 44),
+                  const SizedBox(height: SystemSpacing.xs),
+                  Text('LV. $nivel', style: SystemTextStyles.label),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: SystemSpacing.md),
+          Text(
+            despertar == null
+                ? 'Despertar: —'
+                : 'Despertou em ${formatarDataBr(despertar!)} · $dias ${dias == 1 ? 'dia' : 'dias'} de jornada',
+            key: const Key('profile_despertar'),
+            style: SystemTextStyles.body
+                .copyWith(color: SystemPalette.mutedForeground),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Grupo de opções recolhido por padrão: mostra o rótulo e um resumo do valor
+/// atual; tocar abre as opções.
+class _Recolhivel extends StatefulWidget {
+  const _Recolhivel({
+    required this.id,
+    required this.titulo,
+    required this.resumo,
+    required this.child,
+  });
+
+  final String id;
+  final String titulo;
+  final Widget resumo;
+  final Widget child;
+
+  @override
+  State<_Recolhivel> createState() => _RecolhivelState();
+}
+
+class _RecolhivelState extends State<_Recolhivel> {
+  bool _aberto = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        InkWell(
+          key: Key('profile_toggle_${widget.id}'),
+          onTap: () => setState(() => _aberto = !_aberto),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 44),
+            child: Row(
+              children: [
+                Text(widget.titulo,
+                    style: SystemTextStyles.label
+                        .copyWith(color: SystemPalette.mutedForeground)),
+                const SizedBox(width: SystemSpacing.md),
+                Expanded(
+                  child: Align(
+                      alignment: Alignment.centerRight, child: widget.resumo),
+                ),
+                const SizedBox(width: SystemSpacing.sm),
+                Icon(_aberto ? Icons.expand_less : Icons.expand_more,
+                    size: 20, color: SystemPalette.mutedForeground),
+              ],
+            ),
+          ),
+        ),
+        if (_aberto) ...[
+          const SizedBox(height: SystemSpacing.sm),
+          widget.child,
+        ],
+      ],
     );
   }
 }

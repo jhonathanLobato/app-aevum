@@ -20,11 +20,27 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    // Corpo: resumo tocável no topo e botão visível para novo registro.
+    expect(find.byKey(const Key('body_summary')), findsOneWidget);
+    expect(find.byKey(const Key('body_novo_registro')), findsOneWidget);
+    expect(find.text('NOVO REGISTRO'), findsOneWidget);
+
     await tester.enterText(
         find.descendant(
             of: find.byKey(const Key('profile_nome_field')),
             matching: find.byType(TextField)),
         'Ana');
+    // Avatar e classe começam recolhidos; o cabeçalho mostra o atual.
+    expect(find.text('GUARDIÃO'), findsNothing);
+    expect(find.byKey(const Key('profile_cabecalho_nome')), findsOneWidget);
+    await tester.pump();
+    expect(find.text('ANA'), findsOneWidget); // reflete o nome digitado
+    for (final id in ['classe', 'avatar']) {
+      final t = find.byKey(Key('profile_toggle_$id'));
+      await tester.ensureVisible(t);
+      await tester.tap(t);
+      await tester.pumpAndSettle();
+    }
     await tester.ensureVisible(find.text('GUARDIÃO'));
     await tester.tap(find.text('GUARDIÃO'));
     await tester.pumpAndSettle();

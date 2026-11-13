@@ -1267,6 +1267,13 @@ Acesso: só pelo avatar do cabeçalho da tela Sistema (`/profile`). A tela se
 chama **FICHA DO CAÇADOR** (o mesmo texto aparece no título da aba Status).
 Nada é gravado até tocar em **Salvar** no fim; sair sem salvar descarta.
 
+* **Cabeçalho de leitura** (topo): avatar grande, nome, classe, título, rank,
+  nível e "Despertou em … · X dias de jornada". Reflete o que está sendo
+  editado, mesmo antes de salvar. A Data do Despertar saiu da lista de campos.
+* **Avatar** e **Classe** ficam recolhidos (mostram só o valor atual; tocar
+  abre as opções). **Preferências** (tema e unidades) também começa recolhida,
+  com um resumo ("Escuro · kg · cm").
+
 * **Identidade**: nome, avatar, classe, **título** e **Data do Despertar**.
   O título é escolhido numa lista (`kTitleCatalog`); bloqueados aparecem com
   cadeado e a condição. "Despertado" é o padrão de todos. Por conquista:
@@ -1277,8 +1284,11 @@ Nada é gravado até tocar em **Salvar** no fim; sair sem salvar descarta.
   rank atuais (nada extra no banco; `users.titulo` guarda o nome escolhido).
   Data do Despertar = o mais antigo entre `users.criado_em` e o primeiro
   treino/atividade/registro corporal, com "X dias de jornada" (não editável).
-* **Corpo** (quadro na Ficha): altura, data de nascimento (mostra a idade) e
-  sexo, todos opcionais, mais o resumo (peso atual, variação desde o primeiro
+* **Corpo** (quadro na Ficha): no topo o resumo em cartão tocável ("Evolução
+  corporal · Ver tudo", abre a tela Corpo) e o botão **Novo registro** (abre
+  `/body/new`); abaixo o cadastro, com altura e nascimento lado a lado e o
+  sexo: altura, data de nascimento (mostra a idade) e
+  sexo, todos opcionais. O resumo mostra (peso atual, variação desde o primeiro
   registro, IMC com faixa: <18,5 abaixo do peso, <25 normal, <30 sobrepeso,
   senão obesidade; usa o último peso e a altura). Tocar no resumo abre a tela
   **Corpo** (`/body`): "Novo registro" (`/body/new`; Salvar, sair descarta),

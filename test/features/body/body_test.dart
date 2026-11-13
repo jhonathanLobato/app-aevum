@@ -299,6 +299,12 @@ void main() {
       await tester.pumpAndSettle();
 
       // Preferências: tema claro, lb e pol (a altura é convertida).
+      expect(find.byKey(const Key('profile_tema_claro')), findsNothing,
+          reason: 'Preferências começa recolhida');
+      await tester
+          .ensureVisible(find.byKey(const Key('profile_toggle_preferencias')));
+      await tester.tap(find.byKey(const Key('profile_toggle_preferencias')));
+      await tester.pumpAndSettle();
       await tester.ensureVisible(find.byKey(const Key('profile_tema_claro')));
       await tester.tap(find.byKey(const Key('profile_tema_claro')));
       await tester.tap(find.byKey(const Key('profile_peso_lb')));
