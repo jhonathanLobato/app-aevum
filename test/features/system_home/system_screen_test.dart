@@ -231,8 +231,7 @@ void main() {
       await _finish(tester, db);
     });
 
-    testWidgets('mostra treinos finalizados em PROGRESSO RECENTE',
-        (tester) async {
+    testWidgets('não mostra mais o quadro PROGRESSO RECENTE', (tester) async {
       final db = _memoryDb();
       final exId = await db.into(db.exercises).insert(
             ExercisesCompanion.insert(
@@ -242,9 +241,8 @@ void main() {
 
       await _pumpHome(tester, db);
 
-      expect(find.text('PROGRESSO RECENTE'), findsOneWidget);
-      expect(find.text('Treino concluído'), findsOneWidget);
-      expect(find.textContaining('KG'), findsWidgets);
+      expect(find.text('PROGRESSO RECENTE'), findsNothing);
+      expect(find.text('Treino concluído'), findsNothing);
 
       await _finish(tester, db);
     });
@@ -267,17 +265,6 @@ void main() {
   });
 
   group('Empty states', () {
-    testWidgets(
-        'sem treino finalizado mostra estado vazio em progresso recente',
-        (tester) async {
-      final db = _memoryDb();
-      await _pumpHome(tester, db);
-
-      expect(find.text('COMECE SUA EVOLUÇÃO'), findsOneWidget);
-
-      await _finish(tester, db);
-    });
-
     testWidgets('sem missão ativa mostra estado vazio', (tester) async {
       final db = _memoryDb();
 
@@ -354,15 +341,17 @@ void main() {
       await _finish(tester, db);
     });
 
-    testWidgets('atalho Exercícios e Histórico navegam corretamente',
+    testWidgets('sem atalho de Exercícios; atalho Histórico navega',
         (tester) async {
       final db = _memoryDb();
       await _pumpHome(tester, db);
 
-      await tester.ensureVisible(find.text('EXERCÍCIOS'));
-      await tester.tap(find.text('EXERCÍCIOS'));
+      expect(find.text('EXERCÍCIOS'), findsNothing);
+
+      await tester.ensureVisible(find.text('HISTÓRICO'));
+      await tester.tap(find.text('HISTÓRICO'));
       await tester.pumpAndSettle();
-      expect(find.text('EXERCICIOS_DESTINO'), findsOneWidget);
+      expect(find.text('HISTORICO_DESTINO'), findsOneWidget);
 
       await _finish(tester, db);
     });

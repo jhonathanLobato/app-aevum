@@ -41,6 +41,14 @@ class WorkoutsScreen extends ConsumerWidget {
                 size: 16, color: SystemPalette.foreground),
             onPressed: () => context.push('/workouts/new'),
           ),
+          const SizedBox(height: SystemSpacing.sm),
+          SystemButton(
+            label: 'Exercícios',
+            variant: SystemButtonVariant.ghost,
+            icon: const Icon(Icons.list_alt_rounded,
+                size: 16, color: SystemPalette.foreground),
+            onPressed: () => context.push('/exercises'),
+          ),
           const SizedBox(height: SystemSpacing.lg),
           templatesAsync.when(
             data: (templates) {

@@ -39,6 +39,11 @@ GoRouter _router() => GoRouter(
           builder: (context, state) => const WorkoutsScreen(),
         ),
         GoRoute(
+          path: '/exercises',
+          builder: (context, state) =>
+              const Scaffold(body: Text('EXERCICIOS_DESTINO')),
+        ),
+        GoRoute(
           path: '/workouts/new',
           builder: (context, state) => const WorkoutFormScreen(),
         ),
@@ -104,6 +109,19 @@ Future<void> _fecharDialogosSeHouver(WidgetTester tester) async {
 }
 
 void main() {
+  testWidgets('a aba Treinos dá acesso ao cadastro de exercícios',
+      (tester) async {
+    final db = _memoryDb();
+    await _pump(tester, db);
+
+    await tester.tap(find.text('EXERCÍCIOS'));
+    await _aguardar(tester);
+
+    expect(find.text('EXERCICIOS_DESTINO'), findsOneWidget);
+
+    await _finish(tester, db);
+  });
+
   testWidgets('lista vazia mostra estado vazio e permite criar um treino',
       (tester) async {
     final db = _memoryDb();

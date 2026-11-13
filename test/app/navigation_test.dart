@@ -41,6 +41,15 @@ Future<void> _finish(WidgetTester tester, AppDatabase db) async {
   await db.close();
 }
 
+/// O cadastro de exercícios fica na aba TREINOS (não mais na tela Sistema).
+Future<void> _abrirExercicios(WidgetTester tester) async {
+  await tester.tap(find.text('TREINOS'));
+  await tester.pumpAndSettle();
+  await tester.ensureVisible(find.text('EXERCÍCIOS'));
+  await tester.tap(find.text('EXERCÍCIOS'));
+  await tester.pumpAndSettle();
+}
+
 void main() {
   group('abas principais', () {
     testWidgets('inicializa na aba Sistema com a navigation bar visível',
@@ -249,9 +258,7 @@ void main() {
       final db = _memoryDb();
       await _pumpApp(tester, db);
 
-      await tester.ensureVisible(find.text('EXERCÍCIOS'));
-      await tester.tap(find.text('EXERCÍCIOS'));
-      await tester.pumpAndSettle();
+      await _abrirExercicios(tester);
 
       expect(find.text('BIBLIOTECA DE EXERCÍCIOS'), findsOneWidget);
       expect(find.byType(SystemNavigationBar), findsNothing);
@@ -259,7 +266,7 @@ void main() {
       await tester.tap(find.byTooltip('Voltar'));
       await tester.pumpAndSettle();
 
-      expect(find.text('SYSTEM ONLINE'), findsOneWidget);
+      expect(find.text('PROTOCOLOS DE TREINAMENTO'), findsOneWidget);
       expect(find.byType(SystemNavigationBar), findsOneWidget);
 
       await _finish(tester, db);
@@ -302,16 +309,16 @@ void main() {
       await _pumpApp(tester, db);
 
       // A tela Sistema agora rola (Fase 3/5): os atalhos no fim da página
-      // (ex. "EXERCÍCIOS"/"HISTÓRICO") podem estar fora da área visível
+      // (ex. "HISTÓRICO") podem estar fora da área visível
       // sem rolar até eles primeiro — sem isso, o tap acerta coordenadas
       // erradas (ex. a própria navigation bar, que fica fixa embaixo).
-      await tester.ensureVisible(find.text('EXERCÍCIOS'));
-      await tester.tap(find.text('EXERCÍCIOS'));
-      await tester.pumpAndSettle();
+      await _abrirExercicios(tester);
       expect(find.text('BIBLIOTECA DE EXERCÍCIOS'), findsOneWidget);
       await tester.tap(find.byTooltip('Voltar'));
       await tester.pumpAndSettle();
 
+      await tester.tap(find.text('SISTEMA'));
+      await tester.pumpAndSettle();
       await tester.ensureVisible(find.text('HISTÓRICO'));
       await tester.tap(find.text('HISTÓRICO'));
       await tester.pumpAndSettle();
@@ -384,16 +391,14 @@ void main() {
       final db = _memoryDb();
       await _pumpApp(tester, db);
 
-      await tester.ensureVisible(find.text('EXERCÍCIOS'));
-      await tester.tap(find.text('EXERCÍCIOS'));
-      await tester.pumpAndSettle();
+      await _abrirExercicios(tester);
       expect(find.text('BIBLIOTECA DE EXERCÍCIOS'), findsOneWidget);
 
       await tester.binding.handlePopRoute();
       await tester.pumpAndSettle();
 
       expect(tester.takeException(), isNull);
-      expect(find.text('SYSTEM ONLINE'), findsOneWidget);
+      expect(find.text('PROTOCOLOS DE TREINAMENTO'), findsOneWidget);
       expect(find.byType(SystemNavigationBar), findsOneWidget);
 
       await _finish(tester, db);

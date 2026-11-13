@@ -8,7 +8,6 @@ import '../../../design_system/system_scaffold.dart';
 import '../../../design_system/system_spacing.dart';
 import 'widgets/home_identity_panel.dart';
 import 'widgets/home_mission_panel.dart';
-import 'widgets/home_recent_activity_panel.dart';
 import 'widgets/home_shortcuts_row.dart';
 import '../../workouts/presentation/widgets/active_workout_card.dart';
 
@@ -57,11 +56,6 @@ class SystemScreen extends StatelessWidget {
           const ActiveWorkoutCard(),
           SystemEntrance(
             delay: SystemDurations.staggerStep * 3,
-            child: const HomeRecentActivityPanel(),
-          ),
-          const SizedBox(height: SystemSpacing.lg),
-          SystemEntrance(
-            delay: SystemDurations.staggerStep * 4,
             child: const HomeShortcutsRow(),
           ),
         ],

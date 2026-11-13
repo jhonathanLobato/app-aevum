@@ -3,7 +3,6 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../design_system/system_button.dart';
 import '../../../../design_system/system_colors.dart';
-import '../../../../design_system/system_spacing.dart';
 
 /// Atalhos discretos pras telas secundárias que não têm mais botão próprio
 /// na Home desde que a navigation bar (Fase 4) passou a cobrir as 5 áreas
@@ -16,28 +15,12 @@ class HomeShortcutsRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: SystemButton(
-            label: 'Exercícios',
-            variant: SystemButtonVariant.ghost,
-            icon: const Icon(Icons.fitness_center_rounded,
-                size: 16, color: SystemPalette.foreground),
-            onPressed: () => context.push('/exercises'),
-          ),
-        ),
-        const SizedBox(width: SystemSpacing.sm),
-        Expanded(
-          child: SystemButton(
-            label: 'Histórico',
-            variant: SystemButtonVariant.ghost,
-            icon: const Icon(Icons.history_rounded,
-                size: 16, color: SystemPalette.foreground),
-            onPressed: () => context.push('/history'),
-          ),
-        ),
-      ],
+    return SystemButton(
+      label: 'Histórico',
+      variant: SystemButtonVariant.ghost,
+      icon: const Icon(Icons.history_rounded,
+          size: 16, color: SystemPalette.foreground),
+      onPressed: () => context.push('/history'),
     );
   }
 }
