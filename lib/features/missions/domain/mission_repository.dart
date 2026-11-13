@@ -25,5 +25,6 @@ abstract class MissionRepository {
     required int exerciseId,
     required String exerciseNome,
     required double novoRecorde,
+    bool criarProximo = true,
   });
 }

@@ -97,12 +97,11 @@ void main() {
 
       await _pumpScreen(tester, db);
 
-      // O primeiro treino também registra a primeira carga já logada pra
-      // esse exercício como um PR (não havia recorde anterior pra comparar),
-      // então "Evolução" desbloqueia junto com "Primeiros Passos".
-      expect(find.text('2 / ${kAchievementCatalog.length}'), findsOneWidget);
+      // A primeira série de um exercício só estabelece a referência (não é
+      // PR), então só "Primeiros Passos" desbloqueia no primeiro treino.
+      expect(find.text('1 / ${kAchievementCatalog.length}'), findsOneWidget);
       expect(find.text('Primeiros Passos'), findsOneWidget);
-      expect(find.text('DESBLOQUEADA'), findsNWidgets(2));
+      expect(find.text('DESBLOQUEADA'), findsOneWidget);
 
       await _finish(tester, db);
     });
@@ -114,13 +113,15 @@ void main() {
                 nome: 'Supino reto', grupoMuscular: 'Peito'),
           );
       await _finishAWorkout(db, nome: 'Treino A', exerciseId: exId, carga: 30);
+      // Segundo treino com carga maior: primeiro PR de verdade.
+      await _finishAWorkout(db, nome: 'Treino B', exerciseId: exId, carga: 32);
 
       await _pumpScreen(tester, db);
 
-      // A própria primeira série logada já conta como PR (não havia recorde
-      // anterior), então "Evolução" desbloqueia já no primeiro treino.
+      // "Primeiros Passos" + "Evolução".
       expect(find.text('Evolução'), findsOneWidget);
-      expect(find.textContaining('DESBLOQUEADAS'), findsOneWidget);
+      expect(find.text('2 / ${kAchievementCatalog.length}'), findsOneWidget);
+      expect(find.text('DESBLOQUEADA'), findsNWidgets(2));
 
       await _finish(tester, db);
     });

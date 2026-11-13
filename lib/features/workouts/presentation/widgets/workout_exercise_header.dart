@@ -7,8 +7,7 @@ import '../../../../design_system/system_panel.dart';
 import '../../../../design_system/system_spacing.dart';
 import '../../../../design_system/system_stat_box.dart';
 import '../../../../design_system/system_text_styles.dart';
-import '../../../progression/domain/personal_record.dart';
-import '../../../progression/presentation/personal_record_providers.dart';
+import '../workout_session_providers.dart';
 import 'workout_exercise_progress_track.dart';
 
 /// Painel do topo do carrossel — contador, navegação anterior/próximo,
@@ -43,15 +42,14 @@ class WorkoutExerciseHeader extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final prAsync = ref.watch(exercisePersonalRecordsProvider(exerciseId));
+    // "PR ATUAL" = maior carga já registrada no exercício (inclui a
+    // referência do primeiro treino, que não gera um PR formal).
+    final historicoAsync = ref.watch(exerciseHistoryProvider(exerciseId));
 
-    final prAtual = prAsync.maybeWhen(
-      data: (records) {
-        final cargas = records
-            .where((r) => r.tipo == PersonalRecordType.carga)
-            .map((r) => r.valor);
-        if (cargas.isEmpty) return null;
-        return cargas.reduce((a, b) => a > b ? a : b);
+    final prAtual = historicoAsync.maybeWhen(
+      data: (series) {
+        if (series.isEmpty) return null;
+        return series.map((s) => s.carga).reduce((a, b) => a > b ? a : b);
       },
       orElse: () => null,
     );

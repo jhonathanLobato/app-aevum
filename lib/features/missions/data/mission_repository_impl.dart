@@ -66,6 +66,7 @@ class DriftMissionRepository implements MissionRepository {
     required int exerciseId,
     required String exerciseNome,
     required double novoRecorde,
+    bool criarProximo = true,
   }) {
     return _db.transaction(() async {
       final desafioAtivo = await (_db.select(_db.missions)
@@ -86,7 +87,7 @@ class DriftMissionRepository implements MissionRepository {
       }
 
       final continuaEmAndamento = concluido == null && desafioAtivo != null;
-      if (!continuaEmAndamento) {
+      if (criarProximo && !continuaEmAndamento) {
         final objetivo =
             (novoRecorde + MissionValues.incrementoDesafioCarga).round();
         await _db.into(_db.missions).insert(

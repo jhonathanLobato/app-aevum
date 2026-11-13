@@ -1,3 +1,4 @@
+import 'package:drift/drift.dart' show BooleanExpressionOperators;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gym_system/database/app_database.dart';
@@ -158,33 +159,52 @@ void main() {
     expect(historicoExercicio[1].carga, 32);
   });
 
-  test('a primeira série de um exercício já é um recorde pessoal', () async {
+  /// Registra e conclui um treino anterior com uma série, para servir de
+  /// referência ("melhor resultado anterior") nos testes de PR.
+  Future<void> treinoAnterior({double carga = 30, int repeticoes = 10}) async {
+    final id = await repo.start(templateId: treinoId, nome: 'Treino anterior');
+    await repo.logSet(
+        sessionId: id,
+        exerciseId: exercicioId,
+        repeticoes: repeticoes,
+        carga: carga);
+    await repo.finish(id, duracao: const Duration(minutes: 10));
+  }
+
+  test('a primeira vez de um exercício só estabelece a referência', () async {
     final sessionId = await repo.start(templateId: treinoId, nome: 'Treino A');
-    final resultado = await repo.logSet(
+    final primeira = await repo.logSet(
         sessionId: sessionId,
         exerciseId: exercicioId,
         repeticoes: 10,
         carga: 30);
+    // Mesmo superando a série anterior do próprio treino, ainda é a
+    // referência: sem PR, sem XP, sem desafio.
+    final segunda = await repo.logSet(
+        sessionId: sessionId,
+        exerciseId: exercicioId,
+        repeticoes: 12,
+        carga: 40);
 
-    final tipos = resultado.prsBatidos.map((pr) => pr.tipo).toSet();
-    expect(tipos, {
-      PersonalRecordType.carga,
-      PersonalRecordType.repeticoes,
-      PersonalRecordType.volume,
-    });
-    expect(
-        resultado.prsBatidos.every((pr) => pr.valorAnterior == null), isTrue);
+    for (final r in [primeira, segunda]) {
+      expect(r.prsBatidos, isEmpty);
+      expect(r.xpGanho, isNull);
+      expect(r.desafioConcluido, isNull);
+      expect(r.conquistasDesbloqueadas, isEmpty);
+    }
+    expect(await db.select(db.personalRecords).get(), isEmpty);
+    expect((await db.select(db.users).get()), isEmpty);
+    final desafios = await (db.select(db.missions)
+          ..where((m) => m.tipo.equalsValue(MissionType.desafio)))
+        .get();
+    expect(desafios, isEmpty);
   });
 
-  test('só reporta PR quando o novo valor supera o recorde anterior', () async {
-    final sessionId = await repo.start(templateId: treinoId, nome: 'Treino A');
-    await repo.logSet(
-        sessionId: sessionId,
-        exerciseId: exercicioId,
-        repeticoes: 10,
-        carga: 30);
+  test('só reporta PR quando supera o melhor de treinos anteriores', () async {
+    await treinoAnterior(carga: 30, repeticoes: 10);
+    final sessionId = await repo.start(templateId: treinoId, nome: 'Treino B');
 
-    // Mesma carga e menos repetições: não deve bater nenhum recorde novo.
+    // Mesma carga e menos repetições: nenhum recorde.
     final semNovoRecorde = await repo.logSet(
         sessionId: sessionId,
         exerciseId: exercicioId,
@@ -192,7 +212,7 @@ void main() {
         carga: 30);
     expect(semNovoRecorde.prsBatidos, isEmpty);
 
-    // Carga maior: novo recorde de carga e de volume, mas não de repetições.
+    // Carga maior: recorde de carga e de volume, mas não de repetições.
     final comNovoRecorde = await repo.logSet(
         sessionId: sessionId,
         exerciseId: exercicioId,
@@ -207,23 +227,118 @@ void main() {
     expect(prCarga.valorNovo, 32);
   });
 
-  test('concede XP só quando algum PR é batido na série', () async {
-    final sessionId = await repo.start(templateId: treinoId, nome: 'Treino A');
+  test('cada tipo de PR conta no máximo uma vez por exercício por treino',
+      () async {
+    await treinoAnterior(carga: 30, repeticoes: 10);
+    final sessionId = await repo.start(templateId: treinoId, nome: 'Treino B');
 
     final primeira = await repo.logSet(
         sessionId: sessionId,
         exerciseId: exercicioId,
         repeticoes: 10,
-        carga: 30);
-    expect(primeira.xpGanho, isNotNull);
-    expect(primeira.xpGanho!.xpGanho, 50 * 3); // carga + repetições + volume
+        carga: 32);
+    expect(primeira.prsBatidos, hasLength(2)); // carga + volume
+    expect(primeira.xpGanho!.xpGanho, 50 * 2);
 
-    final semPr = await repo.logSet(
+    // Supera de novo carga e volume no mesmo treino: não conta PR novo.
+    final segunda = await repo.logSet(
         sessionId: sessionId,
         exerciseId: exercicioId,
-        repeticoes: 8,
+        repeticoes: 10,
+        carga: 33);
+    expect(segunda.prsBatidos, isEmpty);
+    expect(segunda.xpGanho, isNull);
+
+    // Repetições ainda não tinham sido batidas neste treino: conta uma vez.
+    final reps = await repo.logSet(
+        sessionId: sessionId,
+        exerciseId: exercicioId,
+        repeticoes: 12,
+        carga: 20);
+    expect(
+        reps.prsBatidos.map((pr) => pr.tipo), [PersonalRecordType.repeticoes]);
+    final repsDeNovo = await repo.logSet(
+        sessionId: sessionId,
+        exerciseId: exercicioId,
+        repeticoes: 14,
+        carga: 20);
+    expect(repsDeNovo.prsBatidos, isEmpty);
+
+    // 3 tipos, uma linha por tipo; o valor guardado é o melhor do treino.
+    final linhas = await db.select(db.personalRecords).get();
+    expect(linhas, hasLength(3));
+    final carga = linhas.singleWhere((p) => p.tipo == PersonalRecordType.carga);
+    expect(carga.valor, 33);
+    final repsLinha =
+        linhas.singleWhere((p) => p.tipo == PersonalRecordType.repeticoes);
+    expect(repsLinha.valor, 14);
+  });
+
+  test('o PR de um treino novo compara com o melhor de todos os anteriores',
+      () async {
+    await treinoAnterior(carga: 30, repeticoes: 10);
+    await treinoAnterior(carga: 40, repeticoes: 5);
+
+    final sessionId = await repo.start(templateId: treinoId, nome: 'Treino C');
+    final abaixo = await repo.logSet(
+        sessionId: sessionId,
+        exerciseId: exercicioId,
+        repeticoes: 10,
+        carga: 35);
+    // 35 < 40 de carga, 10 repetições = recorde anterior de repetições
+    // (empate não conta); volume 350 > 300 (30x10) e > 200 (40x5).
+    expect(abaixo.prsBatidos.map((pr) => pr.tipo), [PersonalRecordType.volume]);
+  });
+
+  test('só cria desafio de carga quando há um PR de carga de verdade',
+      () async {
+    final sessionId = await repo.start(templateId: treinoId, nome: 'Treino A');
+    await repo.logSet(
+        sessionId: sessionId,
+        exerciseId: exercicioId,
+        repeticoes: 10,
         carga: 30);
-    expect(semPr.xpGanho, isNull);
+    await repo.finish(sessionId, duracao: const Duration(minutes: 10));
+    expect(
+        await (db.select(db.missions)
+              ..where((m) => m.tipo.equalsValue(MissionType.desafio)))
+            .get(),
+        isEmpty);
+
+    final segunda = await repo.start(templateId: treinoId, nome: 'Treino B');
+    await repo.logSet(
+        sessionId: segunda, exerciseId: exercicioId, repeticoes: 10, carga: 32);
+    final desafio = await (db.select(db.missions)
+          ..where((m) => m.tipo.equalsValue(MissionType.desafio)))
+        .getSingle();
+    expect(desafio.objetivo, 34);
+  });
+
+  test(
+      'desafio ativo é concluído por carga maior no mesmo treino, sem PR extra',
+      () async {
+    await treinoAnterior(carga: 30);
+    final sessionId = await repo.start(templateId: treinoId, nome: 'Treino B');
+    await repo.logSet(
+        sessionId: sessionId,
+        exerciseId: exercicioId,
+        repeticoes: 10,
+        carga: 31); // PR de carga: cria desafio com meta 33
+    final atingiu = await repo.logSet(
+        sessionId: sessionId,
+        exerciseId: exercicioId,
+        repeticoes: 10,
+        carga: 33);
+    expect(atingiu.prsBatidos, isEmpty);
+    expect(atingiu.desafioConcluido, isNotNull);
+    expect(atingiu.xpGanho!.xpGanho, atingiu.desafioConcluido!.recompensaXp);
+    // Não encadeia um novo desafio dentro do mesmo treino.
+    final ativos = await (db.select(db.missions)
+          ..where((m) =>
+              m.tipo.equalsValue(MissionType.desafio) &
+              m.status.equalsValue(MissionStatus.ativa)))
+        .get();
+    expect(ativos, isEmpty);
   });
 
   test('finalizar o treino concede XP uma única vez', () async {

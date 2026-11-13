@@ -108,17 +108,25 @@ void main() {
       addTearDown(db.close);
       final repo = _repo(db);
       final ex = await _exercicio(db, 'Supino');
+      // Treino anterior concluído: a referência para o PR do treino atual.
+      final anterior = await repo.start(nome: 'Treino anterior');
+      await repo.logSet(
+          sessionId: anterior, exerciseId: ex, repeticoes: 10, carga: 30);
+      await repo.finish(anterior, duracao: const Duration(minutes: 5));
       final id = await repo.start(nome: 'Treino A');
       await repo.logSet(
-          sessionId: id, exerciseId: ex, repeticoes: 10, carga: 30);
+          sessionId: id, exerciseId: ex, repeticoes: 10, carga: 32);
       final xpAntes = (await db.select(db.users).getSingle()).xp;
-      expect(xpAntes, greaterThan(0)); // PR da primeira série
+      expect(xpAntes, greaterThan(150)); // inclui o XP do PR de 32 kg
 
       await repo.discard(id);
 
       expect(await repo.findActive(), isNull);
-      expect(await db.select(db.setEntries).get(), isEmpty);
-      final sessao = await db.select(db.workoutSessions).getSingle();
+      final restantes = await db.select(db.setEntries).get();
+      expect(restantes.where((e) => e.sessionId == id), isEmpty);
+      final sessao = await (db.select(db.workoutSessions)
+            ..where((w) => w.id.equals(id)))
+          .getSingle();
       expect(sessao.status, WorkoutSessionStatus.cancelado);
       expect((await db.select(db.users).getSingle()).xp, xpAntes);
     });

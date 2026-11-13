@@ -450,7 +450,7 @@ void main() {
     });
 
     testWidgets(
-        'fluxo completo: inicia, registra série (PR+conquista), finaliza (missão+conquista) e volta',
+        'fluxo completo: inicia, registra série (sem PR), finaliza (missão+conquista) e volta',
         (tester) async {
       final db = _memoryDb();
       final exercicioId = await _criarExercicio(db, 'Supino reto');
@@ -469,15 +469,9 @@ void main() {
 
       expect(find.text('30.0 KG × 10'), findsOneWidget);
 
-      // A primeira série já é um PR.
-      expect(find.text('NOVO RECORDE'), findsOneWidget);
-      await tester.tap(find.text('OK'));
-      await tester.pumpAndSettle();
-
-      // O primeiro PR de todos também desbloqueia a conquista "Evolução".
-      expect(find.text('CONQUISTA DESBLOQUEADA'), findsOneWidget);
-      await tester.tap(find.text('OK'));
-      await tester.pumpAndSettle();
+      // A primeira série só estabelece a referência: nada de PR/diálogo.
+      expect(find.text('NOVO RECORDE'), findsNothing);
+      expect(find.byType(AlertDialog), findsNothing);
 
       await tester.tap(find.text('FINALIZAR TREINO'));
       await tester.pumpAndSettle();
@@ -504,6 +498,38 @@ void main() {
 
       final sessao = await (db.select(db.workoutSessions)).getSingle();
       expect(sessao.status, WorkoutSessionStatus.concluido);
+
+      await _finish(tester, db);
+    });
+  });
+
+  group('PR só depois de uma referência', () {
+    testWidgets('com treino anterior, superar o melhor mostra o diálogo de PR',
+        (tester) async {
+      final db = _memoryDb();
+      final exId = await _criarExercicio(db, 'Supino reto');
+      final templateRepo = DriftWorkoutTemplateRepository(db);
+      final treinoId = await templateRepo.create('Treino A');
+      await templateRepo.addExercise(treinoId, exId);
+
+      final container = ProviderContainer(
+          overrides: [appDatabaseProvider.overrideWithValue(db)]);
+      final sessionRepo = container.read(workoutSessionRepositoryProvider);
+      final anterior = await sessionRepo.start(nome: 'Treino anterior');
+      await sessionRepo.logSet(
+          sessionId: anterior, exerciseId: exId, repeticoes: 10, carga: 30);
+      await sessionRepo.finish(anterior, duracao: const Duration(minutes: 10));
+      container.dispose();
+
+      await _pump(tester, db, treinoId);
+      await tester.tap(find.text('INICIAR TREINO'));
+      await tester.pumpAndSettle();
+
+      await _registrarSerie(tester, carga: '32', reps: '10');
+
+      expect(find.text('NOVO RECORDE'), findsOneWidget);
+      await tester.tap(find.text('OK'));
+      await tester.pumpAndSettle();
 
       await _finish(tester, db);
     });

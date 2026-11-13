@@ -90,16 +90,22 @@ void main() {
     final container = ProviderContainer(
         overrides: [appDatabaseProvider.overrideWithValue(db)]);
     final sessionRepo = container.read(workoutSessionRepositoryProvider);
+    // O primeiro treino só estabelece a referência (30 kg); o desafio nasce
+    // no primeiro PR de carga de verdade, no treino seguinte.
+    final anterior = await sessionRepo.start(nome: 'Treino anterior');
+    await sessionRepo.logSet(
+        sessionId: anterior, exerciseId: exId, repeticoes: 5, carga: 30);
+    await sessionRepo.finish(anterior, duracao: const Duration(minutes: 10));
     final sessionId = await sessionRepo.start(nome: 'Treino livre');
     await sessionRepo.logSet(
-        sessionId: sessionId, exerciseId: exId, repeticoes: 5, carga: 30);
+        sessionId: sessionId, exerciseId: exId, repeticoes: 5, carga: 31);
     container.dispose();
 
     await _pump(tester, db);
 
     expect(find.text('DESAFIOS'), findsOneWidget);
     expect(find.textContaining('Supino reto'), findsWidgets);
-    expect(find.text('0 / 32'), findsOneWidget);
+    expect(find.text('0 / 33'), findsOneWidget);
 
     await _finish(tester, db);
   });

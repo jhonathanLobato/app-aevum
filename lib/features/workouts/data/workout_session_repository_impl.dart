@@ -135,17 +135,24 @@ class DriftWorkoutSessionRepository implements WorkoutSessionRepository {
             ),
           );
 
-      final prsBatidos = await _personalRecordRepository.checkAndRecord(
+      final verificacao = await _personalRecordRepository.checkAndRecord(
+        sessionId: sessionId,
+        serieId: setEntryId,
         exerciseId: exerciseId,
         repeticoes: repeticoes,
         carga: carga,
         volume: volume,
       );
 
+      final prsBatidos = verificacao.breaks;
+
       Mission? desafioConcluido;
       final bateuRecordeDeCarga =
           prsBatidos.any((pr) => pr.tipo == PersonalRecordType.carga);
-      if (bateuRecordeDeCarga) {
+      // Carga acima da referência, mas com o PR de carga deste treino já
+      // contado numa série anterior: só pode concluir o desafio existente
+      // (não gera PR/XP novo nem cria o desafio seguinte).
+      if (bateuRecordeDeCarga || verificacao.superouCargaDeReferencia) {
         final exercicio = await (_db.select(_db.exercises)
               ..where((e) => e.id.equals(exerciseId)))
             .getSingle();
@@ -153,6 +160,7 @@ class DriftWorkoutSessionRepository implements WorkoutSessionRepository {
           exerciseId: exerciseId,
           exerciseNome: exercicio.nome,
           novoRecorde: carga,
+          criarProximo: bateuRecordeDeCarga,
         );
       }
 
